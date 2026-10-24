@@ -4,41 +4,50 @@ Authoritative product spec: [`docs/PROTOTYPE_CHARTER.md`](PROTOTYPE_CHARTER.md).
 
 Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`).
 
-## Current status (2026-10-24)
+## Current status (2026-10-24, flagship checkpoint)
 
 ### Completed
-- **Asset pipeline** (Meshy → GLB → optimized → browser). See `docs/ASSETS.md`.
-- **GitHub Pages deployment**: every push to `main` is type-checked, tested, built and published to `gh-pages`.
-- **Synthetic computer**: 260 folders, 843 files (`src/data/seed/`). Windows, Program Files, four users,
-  Amanda's personal folders and the "OneDrive - Alder & Finch" business archive, with consistent numbers and
-  previews (77 text, 18 table, 111 image descriptions).
-- **2D explorer**: folder tree with Quick access, file list (keyboard: arrows, Enter, Backspace), back/forward/up,
-  address bar, search (names + preview content), details card with canonical path, preview and Open.
-- **Spatial explorer (first version)**: deterministic layout engine (`src/mapping/layout.ts`):
-  land → districts → open-roof buildings → rooms → shelves/tables/display walls → files as colored spines.
-  Promoted districts: the OneDrive business archive, Projects + Documents, and Pictures appear on the C:\ map
-  with their real paths on their signs, and signposts outside Amanda's house point to them.
-  Walls facing the camera drop to a sill (dollhouse cutaway). Labels are ranked by importance, focus and
-  selection, with collision avoidance.
-- **Synchronization** exactly as approved: linked selection without camera moves, linked open/enter, world
-  selection reveals the item in the explorer, Show in World / Show in Explorer always work, Linked toggle.
+- **Asset pipeline** and **GitHub Pages deployment** (every push to `main` is checked, built and published).
+- **Synthetic computer**: 260 folders, 843 files, consistent business figures, text/table/image previews.
+- **2D explorer**: tree with Quick access, file list with keyboard control, back/forward/up, address bar,
+  search (names and preview content), details card with canonical path, preview and Open.
+- **Spatial explorer**:
+  - Deterministic layout engine: land → districts → open-roof buildings → rooms → shelves / tables /
+    photo walls → files. Same layout every visit.
+  - **Promotion**: the OneDrive business archive, Projects + Documents and Pictures appear as districts on
+    the C:\ map, with their real paths on their signs and signposts at Amanda's house pointing to them.
+  - **Landmark pins** expose important deep destinations from the overview: FY2027 Budget, Q3 2026 Reports,
+    Oakridge Hotels, Kyoto 2026, Garden Planner App.
+  - **Flagship district (Alder & Finch)**: signature-color buildings (Finance green, Contracts oxblood,
+    Operations slate, Board brass, Strategy teal), cornices, pilasters, windows, lettered entrance signs,
+    plaza with fountain, benches, trees, lamps and a clock tower; desks, boardroom table, vault, easels,
+    delivery van and forklift.
+  - **Gallery**: albums hang as photo walls with 40 generated photographs (Kyoto, Lisbon, graduation, garden);
+    the same photos appear in the 2D preview. Ring sculpture outside.
+  - **Studio**: project rooms with workbenches and drafting tables.
+  - Dollhouse cutaway (walls facing the camera drop to a sill), ambient occlusion, soft shadows rendered on
+    demand, textured floors and paving, ranked labels with collision avoidance.
+- **Synchronization** as approved, plus an **off-screen indicator**: selecting something out of view never moves
+  the camera; an edge pointer names it and shows it on click. Files inside closed archive boxes are tagged.
 
 ### Tested
-- Unit: filesystem index, navigation rules (linked on/off), layout invariants (every node anchored, no overlaps,
-  deterministic, promotion), dataset consistency. `npm test`.
-- Browser: `npm run test:e2e` (smoke, also for the `/3dir/` base path) and `npm run test:interactions`
-  (17 checks of tree/list/world/search/linked behavior through real clicks).
+- Unit (32): filesystem index, navigation rules, layout invariants, dataset consistency.
+- Browser: `npm run test:e2e` (also under `/3dir/`: all 19 prop models and 40 photos load) and
+  `npm run test:interactions` (21 checks: tree, list, double-click, linked on/off, Show in World, search,
+  world click, off-screen indicator, Up, Overview).
+- Screenshots: `docs/progress/2026-10-24-flagship/`.
 
-### Broken / unfinished
-- Visual quality is first-pass: plain materials, no generated props placed yet, flat lighting.
-  Screenshots: `docs/progress/2026-10-24-first-world/`.
-- No off-screen indicator yet for a selection outside the view.
-- Studio and gallery use the generic look (no photos, no themed furniture yet).
+### Broken / unfinished / known limitations
+- Users' homes and the Windows & Programs district use the generic look (by design: quieter), but the
+  homes could be cozier.
+- Labels can still crowd at some angles in dense areas; lower-priority labels hide rather than overlap.
+- Some albums (Camera Roll, Screenshots, Holidays, Home) show palette gradients instead of photos.
+- Performance verified only in headless software rendering (slow but correct); a real GPU should be smooth.
+- No first-visit guidance yet.
 
 ### Next
-1. Flagship art pass: business district materials, building identity, plaza, Meshy props, lighting, AO.
-2. Studio and gallery identities; generated photos for the gallery.
-3. Off-screen selection indicator, demo polish, docs.
+1. Demo polish: short first-visit guide, file-color legend, keyboard shortcuts, cozier homes.
+2. End-to-end demo route check against the charter walkthrough; README screenshots.
 
 ## Repeatable test steps
 
@@ -47,9 +56,10 @@ npm install
 npm run typecheck
 npm test                    # unit tests
 npm run build
-npm run test:e2e            # smoke test in headless Chromium
+npm run test:e2e            # smoke test (BASE_PATH=/3dir/ to test the Pages build)
 npm run test:interactions   # explorer/world synchronization checks
-npm run shots -- <outDir> [overview business finance budgets budget-file contracts studio gallery users system]
+npm run shots -- <outDir> [overview business finance budgets budget-file contracts board operations
+                           q3-report studio kyoto-photo gallery users system]
 ```
 
 ## Budget
@@ -58,4 +68,6 @@ npm run shots -- <outDir> [overview business finance budgets budget-file contrac
 | --- | --- | --- |
 | Meshy Premium, first month | $20 | Yes (purchased by owner) |
 | Meshy credits, pipeline test | 30 | Yes |
-| Meshy credits, stage 2 (cap 900) | 282 used so far (see `docs/ASSETS.md`) | Yes |
+| Meshy credits, stage 2 (cap 900) | **477 used** (19 concepts 57, 19 props 300, 40 photos 120); 423 left | Yes |
+
+No other spending.

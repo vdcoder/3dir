@@ -2,6 +2,7 @@ import type { FileNode, FsNode } from '../model/types'
 import { fs, useStore } from '../state/store'
 import { NodeIcon } from './Icon'
 import { formatDate, formatSize, typeLabel } from './kinds'
+import { assetUrl } from '../assetUrl'
 
 /** Floating card describing the current selection, with explicit cross-view commands. */
 export function DetailsCard() {
@@ -74,10 +75,10 @@ export function Preview({ file, compact = false }: { file: FileNode; compact?: b
   }
   if (p.format === 'image') {
     const [a = '#888', b = '#bbb', c = '#555'] = p.palette ?? []
-    const bg = p.src ? `url(${p.src})` : `linear-gradient(160deg, ${a}, ${b} 55%, ${c})`
+    const bg = p.src ? `url("${assetUrl(p.src)}")` : `linear-gradient(160deg, ${a}, ${b} 55%, ${c})`
     return (
       <div className="preview">
-        <div className="photo" style={{ backgroundImage: bg }}>{p.src ? '' : p.description}</div>
+        <div className="photo" role="img" aria-label={p.description} style={{ backgroundImage: bg }}>{p.src ? '' : p.description}</div>
       </div>
     )
   }

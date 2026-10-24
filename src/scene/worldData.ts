@@ -39,3 +39,35 @@ export const PALETTE: Record<ThemeId, ThemePalette> = {
 }
 
 export const LAND = { grass: '#b5c79a', base: '#7d6a55', baseTop: '#a08a70', path: '#ebe5da', avenue: '#e4ddd0' }
+
+// ---------- Building identity colors ----------
+
+const NAMED_ACCENT: Record<string, string> = {
+  Finance: '#2f6b4f',
+  Contracts: '#7a2f38',
+  Operations: '#34557a',
+  Board: '#a8813a',
+  Strategy: '#2d7a78',
+  'Shared with me': '#8a817a',
+  Projects: '#c0643c',
+  Documents: '#55783f',
+  Pictures: '#7b4f8e',
+  Amanda: '#c8775a',
+  Victor: '#6f8f6a',
+  Elena: '#5d86b0',
+  Guest: '#b59a6a',
+  Public: '#8f8a84',
+  Windows: '#5b7590',
+  'Program Files': '#6d7f8f',
+  'Program Files (x86)': '#7d8b97',
+  ProgramData: '#8a949c',
+}
+
+/** The signature color of a building (roofline, sign, rugs, label). */
+export function accentOf(buildingId: NodeId): string {
+  const b = layout.buildings.find((x) => x.nodeId === buildingId)
+  const name = fs.get(buildingId)?.name ?? ''
+  return NAMED_ACCENT[name] ?? (b ? PALETTE[b.theme].accent : '#888888')
+}
+
+export const buildingOfRoom = new Map(layout.rooms.map((r) => [r.nodeId, r.buildingId]))

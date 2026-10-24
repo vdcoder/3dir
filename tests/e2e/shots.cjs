@@ -29,7 +29,11 @@ const SCENARIOS = {
   budgets: go(`${ONEDRIVE}\\Finance\\Budgets`),
   'budget-file': go(`${ONEDRIVE}\\Finance\\Budgets\\FY2027\\FY2027 Operating Budget - DRAFT v3.xlsx`, 'goTo'),
   contracts: go(`${ONEDRIVE}\\Contracts`),
+  board: go(`${ONEDRIVE}\\Board`),
+  operations: go(`${ONEDRIVE}\\Operations`),
+  'q3-report': go(`${ONEDRIVE}\\Finance\\Reports\\Quarterly\\2026 Q3\\Q3 2026 Board Report.pdf`, 'goTo'),
   studio: go('C:\\Users\\Amanda\\Projects'),
+  'kyoto-photo': go('C:\\Users\\Amanda\\Pictures\\Travel\\2026 Kyoto\\Fushimi Inari gates at dawn.jpg', 'goTo'),
   gallery: go('C:\\Users\\Amanda\\Pictures'),
   users: go('C:\\Users'),
   system: go('C:\\Windows'),
@@ -42,26 +46,26 @@ const freePort = () => new Promise((resolve) => {
 ;(async () => {
   const port = await freePort()
   const server = spawn(process.execPath, [join(__dirname, '../../node_modules/vite/bin/vite.js'), 'preview', '--port', String(port), '--strictPort'], { stdio: 'ignore' })
-  const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
   try {
     await new Promise((r) => setTimeout(r, 2000))
     const errors = []
     for (const [name, run] of Object.entries(SCENARIOS)) {
       if (only.length && !only.includes(name)) continue
+      // A fresh browser per scenario: software WebGL doesn't release contexts reliably.
+      const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
       const page = await browser.newPage({ viewport: { width: 1600, height: 960 } })
       page.on('pageerror', (e) => errors.push(`${name}: ${e}`))
       page.on('console', (m) => m.type() === 'error' && errors.push(`${name}: ${m.text()}`))
       await page.goto(`http://localhost:${port}/`)
-      await page.waitForFunction(() => window.__appReady === true, null, { timeout: 60_000 })
+      await page.waitForFunction(() => window.__appReady === true, null, { timeout: 150_000 })
       await page.waitForTimeout(1500)
       try { await run(page) } catch (e) { errors.push(`${name}: ${e.message}`) }
-      await page.screenshot({ path: join(out, `${name}.png`) })
-      await page.close()
+      await page.screenshot({ path: join(out, `${name}.png`), timeout: 120_000 })
+      await browser.close()
       console.log('shot', name)
     }
     if (errors.length) console.log('ERRORS\n' + errors.join('\n'))
   } finally {
-    await browser.close()
     server.kill()
   }
 })()
