@@ -1,63 +1,65 @@
-// Pure navigation/selection rules shared by the 2D explorer and the 3D world.
-// Meanings (charter section 5):
-//   selection     - the one item a view is pointing at (highlight + details)
-//   current folder - the folder whose contents the 2D list shows
-//   expansion     - which tree nodes are open in the 2D tree
-//   world focus   - the folder the 3D camera is "in" (what's framed and detailed)
+// Navigation and selection rules shared by the 2D explorer and the 3D world.
 //
-// Linked ON:
-//   2D select   -> world highlights the same item, camera does NOT move
-//   2D open     -> world focus follows (camera moves)
-//   3D select   -> 2D shows the item's folder and selects it
-//   3D enter    -> 2D current folder follows
-// Linked OFF: views are independent. Show in World / Show in Explorer always act.
+// Each view has:
+//   location  - the folder it is "in" (explorer list, world camera focus)
+//   history   - previous/next locations; only real navigation is recorded
+//   selection - the item it points at; selecting NEVER navigates
+// Commands:
+//   Back / Forward  - move through that view's history
+//   Up              - the canonical parent of the location (never history)
+//   Overview        - the C: map
+//   navigate        - open a folder (tree, list, double-click, label, pin)
+//   reveal          - go to an item's folder and select it (Show in World /
+//                     Show in Explorer / search)
+// Linked ON: both views share location, history and selection; the camera
+// moves only when the world's location changes or an item is revealed.
+// Linked OFF: views are independent; reveal still works on its view.
 
 import type { FsIndex } from '../model/fs'
 import type { NodeId } from '../model/types'
 
-export interface ExplorerState {
-  folderId: NodeId
-  selectedId: NodeId | null
-  expanded: NodeId[]
+export type View = 'explorer' | 'world'
+
+export interface ViewNav {
+  location: NodeId
   back: NodeId[]
   forward: NodeId[]
+  selectedId: NodeId | null
 }
 
-export interface WorldState {
-  focusId: NodeId
-  selectedId: NodeId | null
-  /** Bumped when the camera should (re)frame `frameId`, even if focus didn't change. */
+export interface ExplorerNav extends ViewNav {
+  /** Folders open in the tree. */
+  expanded: NodeId[]
+}
+
+export interface WorldNav extends ViewNav {
+  /** Bumped whenever the camera should (re)frame `frameId`. */
   frameNonce: number
-  /** What the camera should frame: the focus folder or a specific item in it. */
+  /** What the camera frames: the location, or a revealed item in it. */
   frameId: NodeId
 }
 
 export interface NavState {
   linked: boolean
-  explorer: ExplorerState
-  world: WorldState
+  explorer: ExplorerNav
+  world: WorldNav
 }
 
-export function initialNav(fs: FsIndex, rootId: NodeId, explorerFolderId = rootId): NavState {
+const HISTORY_LIMIT = 100
+
+export function initialNav(fs: FsIndex, rootId: NodeId): NavState {
   return {
     linked: true,
-    explorer: {
-      folderId: explorerFolderId,
-      selectedId: null,
-      expanded: withAncestors(fs, explorerFolderId, []),
-      back: [],
-      forward: [],
-    },
-    world: { focusId: rootId, selectedId: null, frameNonce: 0, frameId: rootId },
+    explorer: { location: rootId, back: [], forward: [], selectedId: null, expanded: expandTo(fs, [], rootId) },
+    world: { location: rootId, back: [], forward: [], selectedId: null, frameNonce: 0, frameId: rootId },
   }
 }
 
-/** Expanded list plus every ancestor folder of id (so it is visible in the tree). */
-function withAncestors(fs: FsIndex, id: NodeId, expanded: NodeId[]): NodeId[] {
+/** `expanded` plus every folder from the root down to `id` (inclusive when it is a folder). */
+function expandTo(fs: FsIndex, expanded: NodeId[], id: NodeId | null): NodeId[] {
+  if (!id) return expanded
   const set = new Set(expanded)
-  const chain = fs.ancestry(id)
-  for (const n of chain.slice(0, -1)) set.add(n.id)
-  if (fs.get(id)?.type === 'folder') set.add(id)
+  for (const n of fs.ancestry(id)) if (n.type === 'folder') set.add(n.id)
   return [...set]
 }
 
@@ -68,132 +70,103 @@ export function folderOf(fs: FsIndex, id: NodeId): NodeId {
   return n.type === 'folder' ? n.id : (n.parentId ?? n.id)
 }
 
-function explorerGo(fs: FsIndex, e: ExplorerState, folderId: NodeId, selectedId: NodeId | null, pushHistory = true): ExplorerState {
-  const moved = folderId !== e.folderId
-  return {
-    folderId,
-    selectedId,
-    expanded: withAncestors(fs, folderId, e.expanded),
-    back: moved && pushHistory ? [...e.back, e.folderId].slice(-50) : e.back,
-    forward: moved && pushHistory ? [] : e.forward,
+// ---------- Primitive moves on one view ----------
+
+function moved<T extends ViewNav>(v: T, location: NodeId, pushHistory = true): T {
+  if (location === v.location) return v
+  if (!pushHistory) return { ...v, location }
+  return { ...v, location, back: [...v.back, v.location].slice(-HISTORY_LIMIT), forward: [] }
+}
+
+function withWorldFrame(w: WorldNav, frameId: NodeId): WorldNav {
+  return { ...w, frameId, frameNonce: w.frameNonce + 1 }
+}
+
+/** Apply a change made in `view` to the other view as well when linked. */
+function mirror(fs: FsIndex, s: NavState, view: View, prevWorldLocation: NodeId, frameId?: NodeId): NavState {
+  let { explorer, world } = s
+  if (s.linked) {
+    const src = view === 'explorer' ? explorer : world
+    if (view === 'explorer') world = { ...world, location: src.location, back: src.back, forward: src.forward, selectedId: src.selectedId }
+    else explorer = { ...explorer, location: src.location, back: src.back, forward: src.forward, selectedId: src.selectedId }
   }
-}
-
-function worldGo(w: WorldState, focusId: NodeId, frameId: NodeId = focusId): WorldState {
-  return { ...w, focusId, frameId, frameNonce: w.frameNonce + 1 }
-}
-
-// ---- 2D explorer actions ----
-
-export function explorerSelect(fs: FsIndex, s: NavState, id: NodeId | null): NavState {
-  const explorer = { ...s.explorer, selectedId: id }
-  const world = s.linked ? { ...s.world, selectedId: id } : s.world
-  void fs
+  explorer = { ...explorer, expanded: expandTo(fs, expandTo(fs, explorer.expanded, explorer.location), explorer.selectedId ? folderOf(fs, explorer.selectedId) : null) }
+  // The camera moves when the world's location changed, or on an explicit reveal.
+  if (frameId) world = withWorldFrame(world, frameId)
+  else if (world.location !== prevWorldLocation) world = withWorldFrame(world, world.location)
   return { ...s, explorer, world }
 }
 
-export function explorerOpen(fs: FsIndex, s: NavState, folderId: NodeId): NavState {
+function update(fs: FsIndex, s: NavState, view: View, fn: (v: ViewNav) => ViewNav, frameId?: NodeId): NavState {
+  const prevWorld = s.world.location
+  const next = view === 'explorer' ? { ...s, explorer: { ...s.explorer, ...fn(s.explorer) } } : { ...s, world: { ...s.world, ...fn(s.world) } }
+  return mirror(fs, next, view, prevWorld, frameId)
+}
+
+// ---------- Commands ----------
+
+/** Open a folder in a view (tree, list, world double-click, label, pin, breadcrumb). */
+export function navigate(fs: FsIndex, s: NavState, view: View, folderId: NodeId, select: NodeId | null = null): NavState {
   if (fs.get(folderId)?.type !== 'folder') return s
-  const explorer = explorerGo(fs, s.explorer, folderId, null)
-  const world = s.linked ? { ...worldGo(s.world, folderId), selectedId: null } : s.world
-  return { ...s, explorer, world }
+  return update(fs, s, view, (v) => ({ ...moved(v, folderId), selectedId: select }))
 }
 
-export function explorerBack(fs: FsIndex, s: NavState): NavState {
-  const prev = s.explorer.back.at(-1)
+export function back(fs: FsIndex, s: NavState, view: View): NavState {
+  const v = s[view]
+  const prev = v.back.at(-1)
   if (!prev) return s
-  const e = s.explorer
-  const explorer: ExplorerState = {
-    ...explorerGo(fs, e, prev, null, false),
-    back: e.back.slice(0, -1),
-    forward: [e.folderId, ...e.forward],
-  }
-  const world = s.linked ? { ...worldGo(s.world, prev), selectedId: null } : s.world
-  return { ...s, explorer, world }
+  return update(fs, s, view, (x) => ({ ...x, location: prev, back: x.back.slice(0, -1), forward: [x.location, ...x.forward], selectedId: null }))
 }
 
-export function explorerForward(fs: FsIndex, s: NavState): NavState {
-  const next = s.explorer.forward[0]
+export function forward(fs: FsIndex, s: NavState, view: View): NavState {
+  const next = s[view].forward[0]
   if (!next) return s
-  const e = s.explorer
-  const explorer: ExplorerState = {
-    ...explorerGo(fs, e, next, null, false),
-    back: [...e.back, e.folderId],
-    forward: e.forward.slice(1),
-  }
-  const world = s.linked ? { ...worldGo(s.world, next), selectedId: null } : s.world
-  return { ...s, explorer, world }
+  return update(fs, s, view, (x) => ({ ...x, location: next, back: [...x.back, x.location].slice(-HISTORY_LIMIT), forward: x.forward.slice(1), selectedId: null }))
 }
 
-export function explorerUp(fs: FsIndex, s: NavState): NavState {
-  const parent = fs.get(s.explorer.folderId)?.parentId
+/** The canonical parent of the view's location; the folder we left stays selected. */
+export function up(fs: FsIndex, s: NavState, view: View): NavState {
+  const here = s[view].location
+  const parent = fs.get(here)?.parentId
   if (!parent) return s
-  const next = explorerOpen(fs, s, parent)
-  // Keep the folder we came from selected, like Windows Explorer.
-  return explorerSelect(fs, next, s.explorer.folderId)
+  return navigate(fs, s, view, parent, here)
+}
+
+export function overview(fs: FsIndex, s: NavState, view: View): NavState {
+  return navigate(fs, s, view, fs.roots()[0].id)
+}
+
+/** Point at an item without going anywhere. */
+export function select(fs: FsIndex, s: NavState, view: View, id: NodeId | null): NavState {
+  return update(fs, s, view, (v) => ({ ...v, selectedId: id }))
+}
+
+/** Go to an item's folder in a view and select it there (Show in World / Show in Explorer). */
+export function reveal(fs: FsIndex, s: NavState, view: View, id: NodeId): NavState {
+  const n = fs.get(id)
+  if (!n) return s
+  const folder = n.type === 'folder' ? (n.parentId ?? n.id) : (n.parentId ?? n.id)
+  // A folder is revealed inside its parent, like a file; the root is revealed as itself.
+  const target = n.parentId ? folder : n.id
+  const frame = view === 'world' || s.linked ? id : undefined
+  return update(fs, s, view, (v) => ({ ...moved(v, target), selectedId: n.parentId ? id : null }), frame)
+}
+
+export function setLinked(fs: FsIndex, s: NavState, linked: boolean): NavState {
+  if (!linked) return { ...s, linked }
+  // Linking again: the explorer joins the world (the camera never jumps).
+  const w = s.world
+  const explorer: ExplorerNav = {
+    ...s.explorer,
+    location: w.location, back: w.back, forward: w.forward,
+    selectedId: w.selectedId ?? s.explorer.selectedId,
+    expanded: expandTo(fs, s.explorer.expanded, w.location),
+  }
+  return { ...s, linked, explorer, world: { ...w, selectedId: explorer.selectedId } }
 }
 
 export function toggleExpanded(s: NavState, id: NodeId): NavState {
   const has = s.explorer.expanded.includes(id)
   const expanded = has ? s.explorer.expanded.filter((x) => x !== id) : [...s.explorer.expanded, id]
   return { ...s, explorer: { ...s.explorer, expanded } }
-}
-
-// ---- 3D world actions ----
-
-export function worldSelect(fs: FsIndex, s: NavState, id: NodeId | null): NavState {
-  const world = { ...s.world, selectedId: id }
-  if (!s.linked || id === null) return { ...s, world }
-  const n = fs.get(id)
-  if (!n) return { ...s, world }
-  // Show the item inside its folder in 2D, selected.
-  const parent = n.parentId ?? n.id
-  const explorer = explorerGo(fs, s.explorer, parent, id)
-  return { ...s, world, explorer }
-}
-
-export function worldEnter(fs: FsIndex, s: NavState, folderId: NodeId): NavState {
-  if (fs.get(folderId)?.type !== 'folder') return s
-  const world = { ...worldGo(s.world, folderId), selectedId: null }
-  const explorer = s.linked ? explorerGo(fs, s.explorer, folderId, null) : s.explorer
-  return { ...s, world, explorer }
-}
-
-export function worldUp(fs: FsIndex, s: NavState): NavState {
-  const parent = fs.get(s.world.focusId)?.parentId
-  if (!parent) return s
-  const from = s.world.focusId
-  const next = worldEnter(fs, s, parent)
-  // Keep the place we left identified, in both views when linked.
-  return worldSelect(fs, next, from)
-}
-
-// ---- Explicit commands (work regardless of linking) ----
-
-export function showInWorld(fs: FsIndex, s: NavState, id: NodeId): NavState {
-  const n = fs.get(id)
-  if (!n) return s
-  const focus = n.type === 'folder' ? n.id : (n.parentId ?? n.id)
-  const world: WorldState = { ...worldGo(s.world, focus, id), selectedId: id }
-  return { ...s, world }
-}
-
-export function showInExplorer(fs: FsIndex, s: NavState, id: NodeId): NavState {
-  const n = fs.get(id)
-  if (!n) return s
-  const parent = n.parentId ?? n.id
-  return { ...s, explorer: explorerGo(fs, s.explorer, parent, id) }
-}
-
-/** Search result: an explicit "take me there" in both views. */
-export function goTo(fs: FsIndex, s: NavState, id: NodeId): NavState {
-  return showInWorld(fs, showInExplorer(fs, s, id), id)
-}
-
-export function setLinked(fs: FsIndex, s: NavState, linked: boolean): NavState {
-  if (!linked) return { ...s, linked }
-  // Turning linking back on: the world adopts the explorer's selection only.
-  // The camera stays where it is (no silent teleport).
-  void fs
-  return { ...s, linked, world: { ...s.world, selectedId: s.explorer.selectedId } }
 }
