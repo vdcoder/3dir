@@ -116,6 +116,27 @@ export function planDecor(layout: WorldLayout, nameOf: (id: NodeId) => string): 
   // ---------- Building-specific outdoor props ----------
   for (const b of layout.buildings) {
     const name = nameOf(b.nodeId)
+    const front = (x: number, z: number) => -Math.hypot(x - (b.rect.x + b.rect.w * 0.78), z - (b.rect.z + b.rect.d + 1.6))
+    if (b.theme === 'business') {
+      // Planters flank the lettered sign at each business entrance.
+      const sx = b.rect.x + b.rect.w / 2
+      const sz = b.rect.z + b.rect.d + 0.95
+      for (const dx of [-2.6, 2.6]) outdoor.place('planter', sx + dx, sz, 0, { placeId: b.nodeId, pad: 0.05 })
+    }
+    if (b.theme === 'home') {
+      // A mailbox by every front door.
+      const s = outdoor.spot('mailbox', fromRect(b.rect, 4), 0, front, 0.3, 0.1)
+      if (s) outdoor.place('mailbox', s[0], s[1], 0, { placeId: b.nodeId, pad: 0.1 })
+    }
+    if (b.theme === 'gallery') {
+      const region = fromRect(b.rect, 8)
+      const s = outdoor.spot('sculpture-rings', region, 0, (x, z) => -Math.hypot(x - (b.rect.x - 2.6), z - (b.rect.z + b.rect.d * 0.6)), 0.4, 0.4)
+      if (s) outdoor.place('sculpture-rings', s[0], s[1], 0.5, { placeId: b.nodeId, pad: 0.4 })
+      for (const dx of [-2.2, 2.2]) {
+        const bx = b.rect.x + b.rect.w / 2 + dx
+        outdoor.place('bench', bx, b.rect.z + b.rect.d + 2.6, Math.PI, { placeId: b.nodeId, pad: 0.1 })
+      }
+    }
     if (b.theme === 'business' && name === 'Operations') {
       const region = fromRect(b.rect, 7)
       const s = outdoor.spot('van', region, 0, (x, z) => -Math.hypot(x - (b.rect.x + b.rect.w / 2), z - (b.rect.z + b.rect.d + 2.2)), 0.5, 0.2)
@@ -154,9 +175,18 @@ export function planDecor(layout: WorldLayout, nameOf: (id: NodeId) => string): 
         if (s) { indoor.place('vault', s[0], s[1], 0, { placeId: r.nodeId }); break }
       }
     }
-    for (const r of rooms) {
+    rooms.forEach((r, ri) => {
       const inner = fromRect(r.rect, -0.4)
       const cx = (inner.x0 + inner.x1) / 2
+      if (theme === 'studio' && !r.lobby) {
+        const prop: PropId = ri % 2 === 0 ? 'workbench' : 'drafting-table'
+        const s = indoor.spot(prop, inner, 0, (x, z) => z - Math.abs(x - (inner.x0 + 1.5)) * 0.4, 0.25)
+        if (s) indoor.place(prop, s[0], s[1], 0, { placeId: r.nodeId })
+      }
+      if (theme === 'system' && !r.lobby) {
+        const s = indoor.spot('server-cabinet', inner, 0, (x, z) => -z - Math.abs(x - inner.x1) * 0.2, 0.3)
+        if (s) indoor.place('server-cabinet', s[0], s[1], 0, { placeId: r.nodeId })
+      }
       if (theme === 'business' && (bname === 'Strategy' || bname === 'Board')) {
         const s = indoor.spot('easel-board', inner, 0, (x, z) => -z - Math.abs(x - inner.x1) * 0.3, 0.3)
         if (s) indoor.place('easel-board', s[0], s[1], 0, { placeId: r.nodeId })
@@ -175,7 +205,7 @@ export function planDecor(layout: WorldLayout, nameOf: (id: NodeId) => string): 
         const s = indoor.spot('plant-pot', inner, 0, (x, z) => Math.max(Math.abs(x - cx), 0) - z * 0.2 + (rand(r.nodeId) > 0.5 ? x : -x) * 0.05, 0.3, 0.05)
         if (s) indoor.place('plant-pot', s[0], s[1], rand(r.nodeId + 'p') * 6.28, { placeId: r.nodeId, pad: 0.05 })
       }
-    }
+    })
   }
 
   // ---------- Streets: cypress rows and lamps along avenues ----------

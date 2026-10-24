@@ -28,14 +28,22 @@ const freePort = () => new Promise((resolve) => {
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
     page.on('pageerror', (e) => errors.push(String(e)))
     page.on('requestfailed', (r) => errors.push('request failed: ' + r.url()))
-    page.on('response', (r) => r.status() >= 400 && errors.push(r.status() + ' ' + r.url()))
+    const loaded = { glb: 0, webp: 0 }
+    page.on('response', (r) => {
+      if (r.status() >= 400) errors.push(r.status() + ' ' + r.url())
+      else if (r.url().endsWith('.glb')) loaded.glb++
+      else if (r.url().endsWith('.webp')) loaded.webp++
+    })
     await page.goto(`http://localhost:${port}${base}`)
     await page.waitForSelector('canvas', { timeout: 20_000 })
     await page.waitForFunction(() => window.__appReady === true, null, { timeout: 45_000 })
-    await page.waitForTimeout(1000)
+    // Every prop model and gallery thumbnail must load from the deploy base path.
+    await page.waitForLoadState('networkidle', { timeout: 60_000 }).catch(() => {})
+    if (loaded.glb < 19) errors.push(`only ${loaded.glb} GLB models loaded`)
+    if (loaded.webp < 40) errors.push(`only ${loaded.webp} images loaded`)
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT })
     if (errors.length) throw new Error('browser errors:\n' + errors.join('\n'))
-    console.log(`smoke ok (${base})`)
+    console.log(`smoke ok (${base}): ${loaded.glb} models, ${loaded.webp} images`)
   } finally {
     await browser?.close()
     server.kill()

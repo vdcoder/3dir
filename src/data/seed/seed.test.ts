@@ -35,7 +35,10 @@ describe('synthetic computer', () => {
   })
 
   it('compiles deterministically', () => {
-    expect(compile(dataset.label, seedRoot)).toEqual(dataset)
+    // Generated photos are linked after compiling; compare without them.
+    const strip = (d: typeof dataset) => JSON.parse(JSON.stringify(d).replace(/,"src":"photos\/[^"]+"/g, ''))
+    expect(strip(compile(dataset.label, seedRoot))).toEqual(strip(dataset))
+    expect(compile(dataset.label, seedRoot)).toEqual(compile(dataset.label, seedRoot))
   })
 
   it('resolves the required structure', () => {

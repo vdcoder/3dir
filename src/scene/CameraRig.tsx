@@ -79,14 +79,14 @@ export function CameraRig() {
     }
     // Small things (single files, boxes) are framed with some context around them.
     const b = a.bounds
-    const minSize = a.level === 'item' || a.level === 'box' ? 2.2 : a.level === 'compartment' ? 2.6 : 0
+    const minSize = a.level === 'item' || a.level === 'box' ? 3.6 : a.level === 'compartment' ? 3.4 : 0
     const grown: AABB = minSize
       ? {
           min: [Math.min(b.min[0], (b.min[0] + b.max[0]) / 2 - minSize / 2), b.min[1], Math.min(b.min[2], (b.min[2] + b.max[2]) / 2 - minSize / 2)],
           max: [Math.max(b.max[0], (b.min[0] + b.max[0]) / 2 + minSize / 2), b.max[1], Math.max(b.max[2], (b.min[2] + b.max[2]) / 2 + minSize / 2)],
         }
       : b
-    frame(c, camera, grown, a.level === 'district' ? OVERVIEW_POLAR - 0.04 : CLOSE_POLAR, true)
+    frame(c, camera, grown, a.level === 'district' ? OVERVIEW_POLAR - 0.04 : a.level === 'item' || a.level === 'box' ? 0.72 : CLOSE_POLAR, true)
   }, [frameNonce, frameId, camera])
 
   const l = layout.land

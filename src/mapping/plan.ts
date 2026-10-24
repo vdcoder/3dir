@@ -111,7 +111,8 @@ export const IMPORTANCE: Record<string, number> = {
  */
 export const ROOM_RESERVE: Record<string, [number, number]> = {
   '*:business': [2.4, 2.0],
-  '*:studio': [2.2, 1.6],
+  '*:studio': [2.6, 2.0],
+  '*:gallery': [2.4, 1.8],
   [`${ONEDRIVE}\\Board\\2026 Meetings`]: [5.2, 3.4],
 }
 

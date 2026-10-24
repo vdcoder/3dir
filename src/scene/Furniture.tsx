@@ -1,4 +1,7 @@
 import { useMemo } from 'react'
+import { useThree } from '@react-three/fiber'
+import * as THREE from 'three'
+import { assetUrl } from '../assetUrl'
 import type { ItemEntity } from '../mapping/layout'
 import type { ThemeId } from '../mapping/plan'
 import type { NodeId } from '../model/types'
@@ -85,10 +88,10 @@ function itemColor(it: ItemEntity): string {
 /** Every visible file (and archive box) as an instanced, pickable object. */
 export function Items() {
   const pick = usePick()
-  const { bodies, labels, pictures } = useMemo(() => {
+  useInvalidateBridge()
+  const { bodies, labels } = useMemo(() => {
     const bodies: BoxSpec[] = []
     const labels: BoxSpec[] = []
-    const pictures: BoxSpec[] = []
     for (const it of layout.items) {
       bodies.push({ pos: it.pos, size: it.size, color: itemColor(it) })
       const [x, y, z] = it.pos
@@ -99,21 +102,75 @@ export function Items() {
       } else if (it.form === 'box') {
         labels.push({ pos: [x, y + h * 0.1, z + d / 2 + 0.002], size: [w * 0.55, h * 0.3, 0.004], color: '#f3efe6' })
       } else if (it.form === 'frame') {
-        const n = fs.get(it.nodeId)
-        const pal = n?.type === 'file' && n.preview?.format === 'image' ? n.preview.palette : undefined
-        pictures.push({ pos: [x, y, z + d / 2 + 0.002], size: [w - 0.07, h - 0.07, 0.006], color: pal?.[0] ?? KIND_STYLE[it.kind].color })
       } else if (it.form === 'paper') {
         labels.push({ pos: [x, y + h / 2 + 0.002, z], size: [w * 0.8, 0.003, d * 0.8], color: '#fbfaf6' })
       }
     }
-    return { bodies, labels, pictures }
+    return { bodies, labels }
   }, [])
 
   return (
     <group>
       <Boxes boxes={bodies} roughness={0.7} onPick={(i, _e, k) => pick(layout.items[i].nodeId, k)} />
       <Boxes boxes={labels} castShadow={false} roughness={0.9} />
-      <Boxes boxes={pictures} castShadow={false} roughness={0.6} />
+      <Pictures />
     </group>
   )
+}
+
+const pictureGeometry = new THREE.PlaneGeometry(1, 1)
+
+/** The image on each frame: the generated photo when there is one, else a soft gradient from its palette. */
+function Pictures() {
+  const pick = usePick()
+  const frames = useMemo(() => layout.items.filter((i) => i.form === 'frame').map((it) => {
+    const n = fs.get(it.nodeId)
+    const p = n?.type === 'file' && n.preview?.format === 'image' ? n.preview : undefined
+    return { it, src: p?.src ? p.src.replace('photos/', 'photos/thumbs/') : undefined, palette: p?.palette ?? [KIND_STYLE[it.kind].color, '#ddd'] }
+  }), [])
+  const materials = useMemo(() => {
+    const loader = new THREE.TextureLoader()
+    return frames.map((f) => {
+      const map = f.src ? loader.load(assetUrl(f.src), () => invalidateAll()) : gradientTexture(f.palette)
+      map.colorSpace = THREE.SRGBColorSpace
+      return new THREE.MeshStandardMaterial({ map, roughness: 0.55 })
+    })
+  }, [frames])
+  return (
+    <group>
+      {frames.map((f, i) => (
+        <mesh key={f.it.nodeId} geometry={pictureGeometry} material={materials[i]}
+          position={[f.it.pos[0], f.it.pos[1], f.it.pos[2] + f.it.size[2] / 2 + 0.004]}
+          scale={[f.it.size[0] - 0.1, f.it.size[1] - 0.1, 1]}
+          onClick={(e) => { e.stopPropagation(); pick(f.it.nodeId, 'click') }}
+          onDoubleClick={(e) => { e.stopPropagation(); pick(f.it.nodeId, 'double') }}
+          onPointerMove={(e) => { e.stopPropagation(); pick(f.it.nodeId, 'over') }}
+          onPointerOut={() => pick(f.it.nodeId, 'out')} />
+      ))}
+    </group>
+  )
+}
+
+let invalidateAll = () => {}
+export function useInvalidateBridge() {
+  const invalidate = useThree((s) => s.invalidate)
+  invalidateAll = invalidate
+}
+
+const gradientCache = new Map<string, THREE.Texture>()
+function gradientTexture(palette: string[]): THREE.Texture {
+  const key = palette.join()
+  const hit = gradientCache.get(key)
+  if (hit) return hit
+  const c = document.createElement('canvas')
+  c.width = 64
+  c.height = 48
+  const g = c.getContext('2d')!
+  const grd = g.createLinearGradient(0, 0, 64, 48)
+  palette.forEach((col, i) => grd.addColorStop(i / Math.max(1, palette.length - 1), col))
+  g.fillStyle = grd
+  g.fillRect(0, 0, 64, 48)
+  const t = new THREE.CanvasTexture(c)
+  gradientCache.set(key, t)
+  return t
 }

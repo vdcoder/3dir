@@ -33,6 +33,7 @@ const SCENARIOS = {
   operations: go(`${ONEDRIVE}\\Operations`),
   'q3-report': go(`${ONEDRIVE}\\Finance\\Reports\\Quarterly\\2026 Q3\\Q3 2026 Board Report.pdf`, 'goTo'),
   studio: go('C:\\Users\\Amanda\\Projects'),
+  'kyoto-photo': go('C:\\Users\\Amanda\\Pictures\\Travel\\2026 Kyoto\\Fushimi Inari gates at dawn.jpg', 'goTo'),
   gallery: go('C:\\Users\\Amanda\\Pictures'),
   users: go('C:\\Users'),
   system: go('C:\\Windows'),

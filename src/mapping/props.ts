@@ -5,7 +5,7 @@
 export type PropId =
   | 'fountain' | 'tree-round' | 'tree-cypress' | 'bench' | 'lamp-post' | 'planter'
   | 'desk-office' | 'plant-pot' | 'table-boardroom' | 'vault' | 'van' | 'forklift'
-  | 'easel-board' | 'clock-tower'
+  | 'easel-board' | 'clock-tower' | 'workbench' | 'drafting-table' | 'sculpture-rings' | 'mailbox' | 'server-cabinet'
 
 export interface PropSpec {
   unit: [number, number, number]
@@ -29,6 +29,11 @@ export const PROPS: Record<PropId, PropSpec> = {
   forklift: spec([0.955, 0.567, 0.367], 2.8, 0),
   'easel-board': spec([0.614, 0.952, 0.136], 1.9, 1),
   'clock-tower': spec([0.458, 1.903, 0.438], 13, 1),
+  workbench: spec([0.857, 0.953, 0.49], 1.9, 0),
+  'drafting-table': spec([0.645, 0.951, 0.855], 1.7, 1),
+  'sculpture-rings': spec([0.552, 0.952, 0.501], 3.4, 1),
+  mailbox: spec([0.455, 0.951, 0.45], 1.3, 1),
+  'server-cabinet': spec([0.396, 0.951, 0.363], 2.1, 1),
 }
 
 /** World-space footprint (width along X, depth along Z) for rotation 0. */

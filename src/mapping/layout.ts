@@ -127,7 +127,7 @@ export interface WorldLayout {
 
 const SHELF = { levelH: 0.64, base: 0.14, depth: 0.56, bayW: 1.3, side: 0.05, maxLevels: 4 }
 const TABLE = { h: 0.8, cell: [0.38, 0.48] as const, pad: 0.2, maxCols: 6 }
-const WALL_PANEL = { frame: [0.5, 0.38] as const, gap: 0.12, h: 2.4, maxRows: 3 }
+const WALL_PANEL = { frame: [1.0, 0.75] as const, gap: 0.22, h: 2.5, maxRows: 2 }
 const ROOM = { aisle: 1.15, margin: 0.55, wall: 0.18, partitionH: 1.05, min: 3.6, maxInnerW: 13 }
 const BUILDING = { wall: 0.25, maxW: 34 }
 const STREET = 3.2
@@ -253,11 +253,11 @@ function buildWall(fs: FsIndex, nodeId: NodeId, theme: ThemeId, withSubfolders =
   const rows = Math.min(WALL_PANEL.maxRows, Math.max(1, Math.round(Math.sqrt(n / 2))))
   const cols = Math.ceil(n / rows)
   const [fw, fh] = WALL_PANEL.frame
-  const W = Math.max(1.6, cols * (fw + WALL_PANEL.gap) + 0.3, subs.length * 0.36 + 0.4)
+  const W = Math.max(2.2, cols * (fw + WALL_PANEL.gap) + 0.3, subs.length * 0.5 + 0.4)
   const H = WALL_PANEL.h
   const D = 0.16
   const fixture: FixtureEntity = { nodeId, type: 'wall', theme, pos: [0, 0, 0], size: [W, H, D], levels: rows, bays: cols }
-  const top = 0.75 + rows * (fh + WALL_PANEL.gap)
+  const top = 0.85 + rows * (fh + WALL_PANEL.gap)
   const items: ItemEntity[] = files.map((f, i) => {
     const c = i % cols
     const r = Math.floor(i / cols)
@@ -265,7 +265,7 @@ function buildWall(fs: FsIndex, nodeId: NodeId, theme: ThemeId, withSubfolders =
     return { nodeId: f.id, kind: f.kind, form: 'frame' as ItemForm, pos, size: [fw, fh, 0.035] as Vec3, fixtureId: nodeId }
   })
   subs.forEach((s, i) => {
-    items.push({ nodeId: s.id, kind: 'folder', form: 'box', pos: [-W / 2 + 0.3 + i * 0.36, 0.14, D / 2 + 0.2], size: [0.28, 0.24, 0.3], fixtureId: nodeId })
+    items.push({ nodeId: s.id, kind: 'folder', form: 'box', pos: [-W / 2 + 0.35 + i * 0.5, 0.2, D / 2 + 0.3], size: [0.39, 0.35, 0.46], fixtureId: nodeId })
   })
   return { fixture, items, compartments: [] }
 }

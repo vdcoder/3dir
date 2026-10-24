@@ -3,6 +3,8 @@
 
 import type { FsDataset } from '../../model/types'
 import { compile } from '../compile'
+import { buildIndex } from '../../model/fs'
+import { PHOTOS } from '../photos'
 import type { SeedFolder } from '../seedTypes'
 import { amanda } from './amanda'
 import { dir } from './helpers'
@@ -48,4 +50,15 @@ export const seedRoot: SeedFolder = dir('C:', [
   windows,
 ], '2022-09-03 10:00')
 
-export const dataset: FsDataset = compile('Fictional demo computer — no real files', seedRoot)
+export const dataset: FsDataset = withPhotos(compile('Fictional demo computer — no real files', seedRoot))
+
+/** Links generated pictures (src/data/photos.ts) to their image files' previews. */
+function withPhotos(ds: FsDataset): FsDataset {
+  const fs = buildIndex(ds)
+  for (const n of ds.nodes) {
+    if (n.type !== 'file' || n.preview?.format !== 'image') continue
+    const slug = PHOTOS[fs.path(n.id)]
+    if (slug) n.preview = { ...n.preview, src: `photos/${slug}.webp` }
+  }
+  return ds
+}

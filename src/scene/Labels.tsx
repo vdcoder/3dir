@@ -175,16 +175,21 @@ export function LabelUpdater() {
       let wh = sizes.get(c.key)
       if (!wh) { wh = [el.offsetWidth, el.offsetHeight]; sizes.set(c.key, wh) }
       const [w, h] = wh
-      // Important labels may move up a little to dodge others before giving up.
-      const tries = c.level === 'district' ? [0, -h - 6, h * 0.6, h + 8, -2 * h - 12] : c.level === 'pin' ? [0, h * 0.6, h + 8, 2 * h + 16] : [0]
+      // Important labels may shift a little to dodge others before giving up: [dx, lift].
+      const tries: [number, number][] = c.level === 'district'
+        ? [[0, 0], [0, -h - 6], [0, h * 0.6], [0, h + 8], [0, -2 * h - 12]]
+        : c.level === 'pin'
+          ? [[0, 0], [w * 0.55, 0], [-w * 0.55, 0], [0, h * 0.6], [w * 0.55, h * 0.6], [-w * 0.55, h * 0.6], [0, h + 8]]
+          : [[0, 0]]
       let lift = NaN
-      for (const t of tries) {
-        const r = { x: x - w / 2 - 3, y: y - t - h - 3, w: w + 6, h: h + 6 }
-        if (score >= 1000 || !placed.some((p) => overlaps(p, r))) { placed.push(r); lift = t; break }
+      let shift = 0
+      for (const [dx, t] of tries) {
+        const r = { x: x + dx - w / 2 - 3, y: y - t - h - 3, w: w + 6, h: h + 6 }
+        if (score >= 1000 || !placed.some((p) => overlaps(p, r))) { placed.push(r); lift = t; shift = dx; break }
       }
       if (Number.isNaN(lift)) { el.style.display = 'none'; continue }
-      el.style.transform = `translate(${Math.round(x - w / 2)}px, ${Math.round(y - h - lift)}px)`
-      el.style.setProperty('--lift', `${Math.max(0, Math.round(lift))}px`)
+      el.style.transform = `translate(${Math.round(x + shift - w / 2)}px, ${Math.round(y - h - lift)}px)`
+      el.style.setProperty('--lift', `${shift ? 0 : Math.max(0, Math.round(lift))}px`)
       el.classList.toggle('selected', c.nodeId !== null && c.nodeId === selectedId)
       el.classList.toggle('hovered', c.nodeId !== null && c.nodeId === hoverId)
     }
