@@ -7,7 +7,7 @@ import { catalog, fs, useContextRoot, useStore } from '../state/store'
 import { Buildings, Ground } from './Architecture'
 import { CameraRig } from './CameraRig'
 import { Fixtures, Items } from './Furniture'
-import { Highlight } from './Highlight'
+import { Highlight, RevealOutlines } from './Highlight'
 import { LabelBusContext, LabelLayer, LabelUpdater, makeLabelBus } from './Labels'
 import { PickController } from './picking'
 import { Pins } from './Pins'
@@ -75,6 +75,7 @@ function Scene({ layout }: { layout: WorldLayout }) {
       <Props />
       <Pins />
       <Highlight />
+      <RevealOutlines />
       <CameraRig />
       <LabelUpdater />
       <PickController />
@@ -82,8 +83,23 @@ function Scene({ layout }: { layout: WorldLayout }) {
   )
 }
 
+/** Reveal mode lasts while Alt is held (the world-corner button toggles it for touch screens). */
+function useRevealKey() {
+  useEffect(() => {
+    const set = (on: boolean) => { if (useStore.getState().revealMode !== on) useStore.getState().setRevealMode(on) }
+    const down = (e: KeyboardEvent) => { if (e.key === 'Alt') { e.preventDefault(); if (!e.repeat) set(true) } }
+    const upKey = (e: KeyboardEvent) => { if (e.key === 'Alt') { e.preventDefault(); set(false) } }
+    const blur = () => set(false)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', upKey)
+    window.addEventListener('blur', blur)
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', upKey); window.removeEventListener('blur', blur) }
+  }, [])
+}
+
 export function World() {
   const [ready, setReady] = useState(false)
+  useRevealKey()
   const contextRoot = useContextRoot()
   const layout = catalog.get(contextRoot)
   const bus = useMemo(() => makeLabelBus(layout), [layout])
@@ -123,19 +139,27 @@ function markReady(set: (v: boolean) => void) {
   return cb
 }
 
-/** Where the world is, and how to move: Back / Forward / Up / Overview act on the world. */
+/**
+ * World corner. Linked: the top bar is the only navigation (both views share one
+ * place), so the world keeps just Overview, Reveal and, inside a box, a way out.
+ * Unlinked: the world has its own path and Back / Forward / Up.
+ */
 function WorldHud() {
   const location = useStore((s) => s.world.location)
   const canBack = useStore((s) => s.world.back.length > 0)
   const canForward = useStore((s) => s.world.forward.length > 0)
+  const linked = useStore((s) => s.linked)
+  const reveal = useStore((s) => s.revealMode)
   const contextRoot = useContextRoot()
-  const { back, forward, up, overview, worldEnter } = useStore.getState()
+  const { back, forward, up, overview, worldEnter, navigate, setRevealMode } = useStore.getState()
   const chain = fs.ancestry(location)
   const boxes = catalog.chainFor(location).slice(1)
+  const box = boxes.length ? fs.get(contextRoot) : undefined
+  const leaveBox = () => { const b = fs.get(contextRoot); if (b?.parentId) navigate('world', b.parentId, b.id) }
   return (
-    <div className="world-hud">
+    <div className={'world-hud' + (linked ? ' linked' : '')}>
       <div className="world-crumbs" aria-label="World location">
-        <span className="where">{boxes.length ? 'Inside a box' : 'You are in'}</span>
+        <span className="where">{linked ? (boxes.length ? 'Inside a box' : 'You are in') : 'World'}</span>
         {chain.map((n, i) => (
           <span key={n.id} style={{ display: 'contents' }}>
             {i > 0 && <span className={'crumb-sep' + (boxes.includes(n.id) ? ' box-edge' : '')} title={boxes.includes(n.id) ? 'Opened box' : undefined}>{boxes.includes(n.id) ? '▣' : '›'}</span>}
@@ -143,10 +167,21 @@ function WorldHud() {
           </span>
         ))}
       </div>
+      {box && (
+        <div className="box-chip" role="status">
+          <span className="box-glyph" aria-hidden>▣</span> Inside the “{box.name}” box
+          <button className="btn" onClick={leaveBox} title={`Back out to the shelf that holds “${box.name}”`}>Leave box</button>
+        </div>
+      )}
       <div className="world-buttons">
-        <button className="btn" onClick={() => back('world')} disabled={!canBack} title="Back: previous place you visited" aria-label="World back">←</button>
-        <button className="btn" onClick={() => forward('world')} disabled={!canForward} title="Forward" aria-label="World forward">→</button>
-        <button className="btn" onClick={() => up('world')} disabled={chain.length < 2} title="Up: the folder that contains this one">↑ Up</button>
+        <span className="world-nav">
+          <button className="btn" onClick={() => back('world')} disabled={!canBack} title="Back: the previous place you visited (world)" aria-label="World back">←</button>
+          <button className="btn" onClick={() => forward('world')} disabled={!canForward} title="Forward (world)" aria-label="World forward">→</button>
+          <button className="btn" onClick={() => up('world')} disabled={chain.length < 2} title="Up: the folder that contains this one (world)" aria-label="World up">↑ Up</button>
+        </span>
+        <button className={'btn reveal-btn' + (reveal ? ' on' : '')} aria-pressed={reveal} onClick={() => setRevealMode(!reveal)} title="Show every name and boundary (or hold Alt)">
+          Reveal <kbd>Alt</kbd>
+        </button>
         <button className="btn" onClick={() => overview('world')} title="The whole C: map">Overview</button>
       </div>
     </div>

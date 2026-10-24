@@ -26,12 +26,12 @@ budget are in [`docs/PROGRESS.md`](docs/PROGRESS.md); asset sources, licenses an
    brick Business square, inside the fenced Documents yard, inside Amanda's block, inside the Users district.
 2. Double-click the campus. Four buildings around a plaza: Finance, Clients, Legal, Operations.
    Click a room or a binder: it's selected in both views, and nothing moves.
-3. Press **↑ Up** a few times: Business, Documents, Amanda. Up always means "the folder that contains this one".
-   Press **←** to go back through the places you actually visited.
+3. Press **Up** (top bar) a few times: Business, Documents, Amanda. Up always means "the folder that contains
+   this one". Press **Back** to go back through the places you actually visited. Hold **Alt** to see every name.
 4. Search for "Hurricane pre-staging" and pick the result. The file is ten folders down, inside a closed box
    (`…\Clients\Biscayne Senior Living\Orders\2026\Q3`); its tag says so. Double-click the box to go inside:
-   a world of its own, on a cardboard floor, and the breadcrumb says "Inside a box". **↑ Up** takes you back out
-   to its shelf.
+   a world of its own, on a cardboard floor, marked "Inside the “Q3” box". **Leave box** (or Up) takes you back
+   out to its shelf.
 5. Notice the ★ pins on the overview: *FY2027 Budget* lives five folders deep in Amanda's OneDrive, but you can
    see it, and go to it, from the top.
 6. Press **Overview** to return to the whole map.
@@ -56,10 +56,14 @@ Live demo: <https://vdcoder.github.io/3dir/> (every push to `main` deploys autom
 - **Explorer (left):** familiar folder tree, file list, address bar, back/forward/up, search.
 - **World (right):** drag to pan, right-drag to rotate, scroll to zoom. Click to select; double-click to go into a
   folder (a building, a room, a shelf or a closed box) or open a file; click a ★ pin to go to it.
-- **Back / Forward** step through places you visited. **↑ Up** goes to the containing folder, even out of a box.
-  **Overview** returns to C:. Selecting something never moves you.
-- **Linked navigation** (top bar) keeps both views in the same place. Turn it off to explore them independently;
-  **Show in World** and **Show in Explorer** always work.
+- **Back / Forward / Up** (top bar) step through places you visited, or go to the containing folder, even out
+  of a box. **Overview** returns to C:. Selecting something never moves you.
+- Hover anything to see what it is and what double-click will do. Hold **Alt** (or press **Reveal**) to see
+  every name and boundary at once.
+- **Details** of the selection sit at the bottom of the explorer pane, with Open and Show location.
+- **Linked navigation** (top bar) keeps both views in the same place, with one set of controls. Turn it off to
+  explore them independently: the world then gets its own path and Back / Forward / Up, and the details offer
+  **Show in World** and **Show in Explorer**.
 
 ## Generating 3D assets (Meshy)
 

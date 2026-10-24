@@ -44,6 +44,11 @@ const CHROME_DEEP = 'C:\\Program Files\\Google\\Chrome\\Application'
     const row = (name) => page.locator('.list-row').filter({ has: page.locator('.name span', { hasText: exact(name) }) }).first()
     const tree = (name) => page.locator('.tree-row').filter({ has: page.locator('.label', { hasText: exact(name) }) }).first()
     const hud = (name) => page.locator('.world-buttons').getByRole('button', { name })
+    const top = (name) => page.locator('.topbar').getByRole('button', { name, exact: true })
+    const visibleLabels = () => page.evaluate(() => [...document.querySelectorAll('.labels .wl')].filter((e) => e.style.display !== 'none').length)
+    // Software rendering draws a frame in ~1s: poll for what the next frames should show.
+    const eventually = (fn, arg, timeout = 20_000) => page.waitForFunction(fn, arg, { timeout, polling: 200 }).then(() => true, () => false)
+    const TAG = () => { const t = document.querySelector('.wl-focus'); return t && t.style.display !== 'none' ? t.textContent : '' }
 
     // 0. First-visit guide; a pin goes straight to its destination.
     check('guide shows on first visit', await page.getByRole('region', { name: 'How to use 3dir' }).isVisible())
@@ -52,6 +57,10 @@ const CHROME_DEEP = 'C:\\Program Files\\Google\\Chrome\\Application'
     let s = await state()
     check('pin click goes to the pinned folder', s.loc.endsWith('Budgets\\FY2027') && s.ex.endsWith('Budgets\\FY2027'), JSON.stringify(s))
     await hud('Overview').click()
+
+    // 0b. Linked: one set of navigation controls (the top bar); the world keeps Overview.
+    check('linked: one Back / Up, in the top bar', await top('Back').isVisible() && await top('Up to parent folder').isVisible() && !(await page.getByRole('button', { name: 'World back' }).isVisible()) && !(await page.getByRole('button', { name: 'World up' }).isVisible()))
+    check('linked: no second path in the world', !(await page.locator('.world-crumbs').isVisible()))
 
     // 1. Tree / list (linked).
     await tree('Users').click()
@@ -85,15 +94,49 @@ const CHROME_DEEP = 'C:\\Program Files\\Google\\Chrome\\Application'
     })
     check('clicking a binder picks the binder, not its shelf', binderPick.got === binderPick.want, JSON.stringify(binderPick))
 
+    // 3b. Details are docked: they never cover the world, so siblings stay clickable.
+    const sib = await page.evaluate(() => {
+      const { fs, screenOf } = window.__3dir
+      const fy = fs.resolve('C:\\Users\\Amanda\\OneDrive - Alder & Finch\\Finance\\Budgets\\FY2027')
+      const [a, b] = fs.children(fy.id).filter((c) => c.type === 'file')
+      return { a: a.id, b: b.id, pa: screenOf(a.id), pb: screenOf(b.id) }
+    })
+    await page.mouse.click(sib.pa.x, sib.pa.y)
+    await page.waitForTimeout(400)
+    const details = await page.getByTestId('details').boundingBox()
+    const canvas = await page.locator('.world canvas').boundingBox()
+    const overlap = details && canvas && details.x < canvas.x + canvas.width && canvas.x < details.x + details.width && details.y < canvas.y + canvas.height && canvas.y < details.y + details.height
+    check('details are docked beside the world, not over it', !!details && !overlap, JSON.stringify({ details, canvas }))
+    check('details show the selected file', (await page.getByTestId('details').textContent()).includes(await page.evaluate((id) => window.__3dir.fs.get(id).name, sib.a)))
+    await page.mouse.click(sib.pb.x, sib.pb.y)
+    await page.waitForTimeout(400)
+    s = await state()
+    check('a sibling is clickable while details are open', s.wSel === await page.evaluate((id) => window.__3dir.fs.path(id), sib.b), JSON.stringify(s))
+    const tagText = () => page.evaluate(TAG)
+    check('the selection tag says what it is and what double-click does', await eventually(`(${TAG})().includes('double-click to open') && /Spreadsheet|document|PDF/i.test((${TAG})())`), await tagText())
+
+    // 3c. Alt held: every name and boundary; released: back to rest.
+    await settle(2500)
+    const restCount = await visibleLabels()
+    const countAbove = (n) => `[...document.querySelectorAll('.labels .wl')].filter((e) => e.style.display !== 'none').length > ${n}`
+    await page.keyboard.down('Alt')
+    const revealed = await eventually(countAbove(restCount + 3))
+    const revealOn = await page.evaluate(() => window.__3dir.useStore.getState().revealMode)
+    const revealCount = await visibleLabels()
+    await page.keyboard.up('Alt')
+    const rested = await eventually(`!window.__3dir.useStore.getState().revealMode && !(${countAbove(restCount + 1)})`)
+    check('holding Alt reveals more names', revealOn && revealed, `${restCount} -> ${revealCount}`)
+    check('releasing Alt returns to rest', rested, `${await visibleLabels()} labels`)
+
     // 4. Up is canonical; Back/Forward are history.
-    await hud('↑ Up').click()
+    await top('Up to parent folder').click()
     s = await state()
     check('Up goes to the canonical parent', s.loc === `${ONEDRIVE}\\Finance` && s.wSel === `${ONEDRIVE}\\Finance\\Budgets`, JSON.stringify(s))
-    await hud('↑ Up').click()
-    await page.getByRole('button', { name: 'World back' }).click()
+    await top('Up to parent folder').click()
+    await top('Back').click()
     s = await state()
     check('Back returns to the previous place', s.loc === `${ONEDRIVE}\\Finance`, s.loc)
-    await page.getByRole('button', { name: 'World forward' }).click()
+    await top('Forward').click()
     s = await state()
     check('Forward goes forward again', s.loc === ONEDRIVE, s.loc)
 
@@ -117,23 +160,31 @@ const CHROME_DEEP = 'C:\\Program Files\\Google\\Chrome\\Application'
     })
     check('a closed box is visible and pickable', !!boxShot, 'no box found')
     if (boxShot) {
+      await page.mouse.move(boxShot.x, boxShot.y)
+      check('hovering a box says it can be opened', await eventually(`/Closed box.*double-click to open it/.test((${TAG})())`), await tagText())
       await page.mouse.dblclick(boxShot.x, boxShot.y)
       await settle(3000)
       s = await state()
       check('double-click on a box opens a box-world rooted at it', s.loc === boxShot.path && /Inside a box/.test(s.hud ?? ''), JSON.stringify(s))
-      await hud('↑ Up').click()
+      check('inside a box, the world says so', await page.locator('.box-chip').isVisible())
+      await top('Up to parent folder').click()
       await settle(3000)
       s = await state()
       check('Up leaves the box-world to its canonical parent', s.loc === boxShot.path.split('\\').slice(0, -1).join('\\') && s.wSel === boxShot.path, JSON.stringify(s))
-      await page.getByRole('button', { name: 'World back' }).click()
+      await top('Back').click()
       await settle(3000)
       s = await state()
       check('Back re-enters the box-world', s.loc === boxShot.path && /Inside a box/.test(s.hud ?? ''), JSON.stringify(s))
+      await page.getByRole('button', { name: 'Leave box' }).click()
+      await settle(3000)
+      s = await state()
+      check('Leave box goes back out to its shelf', s.loc === boxShot.path.split('\\').slice(0, -1).join('\\') && s.wSel === boxShot.path && !(await page.locator('.box-chip').isVisible()), JSON.stringify(s))
     }
 
     // 6. Linked OFF: independent views; Show in World still works.
     await hud('Overview').click()
     await page.getByRole('switch', { name: /Linked navigation/ }).click()
+    check('unlinked: the world gets its own path and Back / Up', await page.getByRole('button', { name: 'World back' }).isVisible() && await page.getByRole('button', { name: 'World up' }).isVisible() && await page.locator('.world-crumbs').isVisible())
     await tree('Windows').click()
     s = await state()
     check('unlinked: world stays put', s.loc === 'C:\\' && s.ex === 'C:\\Windows', JSON.stringify(s))

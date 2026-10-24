@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { dataset } from '../data/seed'
-import { fs, useStore } from '../state/store'
+import { catalog, fs, useStore } from '../state/store'
 import { NodeIcon } from './Icon'
 import { search } from './search'
 
@@ -17,6 +17,12 @@ export function TopBar({ onTogglePanel }: { onTogglePanel(): void }) {
   const linked = useStore((s) => s.linked)
   const { back, forward, up, explorerOpen, setLinked } = useStore.getState()
   const chain = fs.ancestry(folderId)
+  // Linked: one path for both views, with the edges of opened boxes marked.
+  const boxes = linked ? catalog.chainFor(folderId).slice(1) : []
+  const scope = linked ? '' : ' (explorer)'
+  // Long paths: keep the end (where you are) in view, like Explorer does.
+  const address = useRef<HTMLElement>(null)
+  useEffect(() => { const el = address.current; if (el) el.scrollLeft = el.scrollWidth }, [folderId, linked])
 
   return (
     <header className="topbar">
@@ -25,26 +31,30 @@ export function TopBar({ onTogglePanel }: { onTogglePanel(): void }) {
       </button>
       <div className="brand"><b>3dir</b><span>Your files. Your world.</span></div>
       <div className="navbtns">
-        <button className="iconbtn" aria-label="Back" title="Back" disabled={!canBack} onClick={() => back('explorer')}><Chevron dir="left" /></button>
-        <button className="iconbtn" aria-label="Forward" title="Forward" disabled={!canForward} onClick={() => forward('explorer')}><Chevron dir="right" /></button>
-        <button className="iconbtn" aria-label="Up to parent folder" title="Up to parent folder" disabled={chain.length < 2} onClick={() => up('explorer')}><Chevron dir="up" /></button>
+        <button className="iconbtn" aria-label="Back" title={`Back: the previous place you visited${scope}`} disabled={!canBack} onClick={() => back('explorer')}><Chevron dir="left" /></button>
+        <button className="iconbtn" aria-label="Forward" title={`Forward${scope}`} disabled={!canForward} onClick={() => forward('explorer')}><Chevron dir="right" /></button>
+        <button className="iconbtn" aria-label="Up to parent folder" title={`Up: the folder that contains this one${scope}`} disabled={chain.length < 2} onClick={() => up('explorer')}><Chevron dir="up" /></button>
       </div>
-      <nav className="address" aria-label="Current folder path">
-        {chain.map((n, i) => (
-          <span key={n.id} style={{ display: 'contents' }}>
-            {i > 0 && <span className="crumb-sep">›</span>}
-            <button className="crumb" onClick={() => explorerOpen(n.id)} title={fs.path(n.id)}>
-              {i === 0 ? 'Local Disk (C:)' : n.name}
-            </button>
-          </span>
-        ))}
+      <nav className="address" aria-label="Current folder path" ref={address}>
+        {!linked && <span className="addr-tag" title="Linked navigation is off: this path is the explorer's">Explorer</span>}
+        {chain.map((n, i) => {
+          const box = boxes.includes(n.id)
+          return (
+            <span key={n.id} style={{ display: 'contents' }}>
+              {i > 0 && <span className={'crumb-sep' + (box ? ' box-edge' : '')} title={box ? `${n.name} is a box you opened` : undefined}>{box ? '▣' : '›'}</span>}
+              <button className="crumb" onClick={() => explorerOpen(n.id)} title={fs.path(n.id)}>
+                {i === 0 ? 'Local Disk (C:)' : n.name}
+              </button>
+            </span>
+          )
+        })}
       </nav>
       <SearchBox />
       <button
         className="toggle"
         role="switch"
         aria-checked={linked}
-        title="When on, the explorer and the world follow each other"
+        title={linked ? 'On: the explorer and the world are in the same place. Turn off to move them separately.' : 'Off: the explorer and the world move separately.'}
         onClick={() => setLinked(!linked)}
       >
         <span className="track" /> Linked navigation

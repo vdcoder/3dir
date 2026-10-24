@@ -23,7 +23,44 @@ const go = (path, how = 'worldEnter') => async (page) => {
 }
 
 const AMM = 'C:\\Users\\Amanda\\Documents\\Business\\AmandaMedicalMiami'
+const settle = (page, ms = 2500) => page.waitForTimeout(ms)
+// Select a file, by path, the way a person would: clicking it in the world.
+const clickInWorld = (path) => async (page) => {
+  const p = await page.evaluate((x) => window.__3dir.screenOf(window.__3dir.fs.resolve(x).id), path)
+  if (p && p.onScreen) await page.mouse.click(p.x, p.y)
+  await settle(page)
+}
 const SCENARIOS = {
+  // Milestone C states.
+  'c-selected': async (page) => {
+    await go(`${AMM}\\Finance\\Budgets`)(page)
+    await settle(page)
+    const file = await page.evaluate((x) => { const { fs } = window.__3dir; const f = fs.children(fs.resolve(x).id).find((c) => c.type === 'file'); return fs.path(f.id) }, `${AMM}\\Finance\\Budgets\\2027 draft`)
+    await clickInWorld(file)(page)
+  },
+  'c-reveal': async (page) => {
+    await go(`${AMM}\\Finance\\Budgets`)(page)
+    await settle(page)
+    await page.keyboard.down('Alt')
+    await settle(page, 4000)
+  },
+  'c-hover-box': async (page) => {
+    await go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3`, 'goTo')(page)
+    await settle(page, 4000)
+    const p = await page.evaluate((x) => window.__3dir.screenOf(window.__3dir.fs.resolve(x).id), `${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3`)
+    if (p && p.onScreen) await page.mouse.move(p.x, p.y)
+    await settle(page)
+  },
+  'c-in-box': async (page) => {
+    await go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3`)(page)
+    await settle(page)
+  },
+  'c-unlinked': async (page) => {
+    await go(`${AMM}\\Legal`)(page)
+    await page.getByRole('switch', { name: /Linked navigation/ }).click()
+    await page.evaluate(() => { const { fs, useStore } = window.__3dir; useStore.getState().explorerOpen(fs.resolve('C:\\Users\\Amanda\\Pictures').id) })
+    await settle(page)
+  },
   'first-visit': async () => {},
   overview: async () => {},
   amanda: go('C:\\Users\\Amanda'),
