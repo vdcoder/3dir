@@ -18,6 +18,7 @@ export const DEMO_USER = 'Amanda'
 
 const HOME = `C:\\Users\\${DEMO_USER}`
 const ONEDRIVE = `${HOME}\\OneDrive - Alder & Finch`
+const AMM = `${HOME}\\Documents\\Business\\AmandaMedicalMiami`
 
 /** Canonical paths of the destinations the demo walkthrough leans on (all verified by seed.test.ts). */
 export const DEMO_PATHS = {
@@ -39,6 +40,9 @@ export const DEMO_PATHS = {
   kyotoAlbum: `${HOME}\\Pictures\\Travel\\2026 Kyoto`,
   kitchenBudget: `${HOME}\\Projects\\Kitchen Renovation\\Budget.xlsx`,
   gardenApp: `${HOME}\\Projects\\Garden Planner App\\src\\App.tsx`,
+  amm: AMM,
+  ammDeep: `${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3\\Delivery confirmations`,
+  ammBudget: `${AMM}\\Finance\\Budgets\\2027 draft\\AMM Budget 2027 - DRAFT.xlsx`,
 } as const
 
 /** The authored tree, before compilation (exported for tests). */

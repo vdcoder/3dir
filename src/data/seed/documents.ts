@@ -1,8 +1,10 @@
-// C:\Users\Amanda\Documents — household paperwork, recipes, travel, home.
+// C:\Users\Amanda\Documents — household paperwork, recipes, travel, home, and
+// Business\ (the company Amanda co-owns; see business.ts and amm.ts).
 // The Reyes family: Amanda, Victor (husband) and Elena (daughter, first-year
 // architecture student at the fictional Westmere University since Aug 2026).
 
 import type { SeedFolder } from '../seedTypes'
+import { business } from './business'
 import { dir, f, files, table, text } from './helpers'
 
 const personalFinance = dir('Personal Finance', [
@@ -203,6 +205,7 @@ const elenaUni = dir('Elena - University', [
 ], '2025-10-15')
 
 export const documents: SeedFolder = dir('Documents', [
+  business,
   elenaUni,
   home,
   letters,
