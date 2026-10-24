@@ -1,0 +1,296 @@
+// C:\Users\Amanda\Projects — Amanda's personal "workbenches": a hobby web
+// app, the kitchen renovation, a novel in progress, a woodworking build and
+// an archive of finished projects.
+
+import type { SeedFolder } from '../seedTypes'
+import { album, between, dir, f, files, photo, table, text } from './helpers'
+
+const gardenPlanner = dir('Garden Planner App', [
+  dir('design', [
+    f('Garden Planner.fig', { at: '2026-09-27 15:20', since: '2026-02-21 10:00' }),
+    photo('mockup - home.png', 'A clean web-app mockup with a sage-green sidebar, a seasonal calendar strip and a grid of raised garden beds drawn from above.', ['#7a9e7e', '#f4f1e8', '#d97b4a', '#2f3e34'], { at: '2026-03-08 16:00' }),
+    photo('mockup - plot editor.png', 'A close-up UI mockup of a garden bed grid with round plant tokens for tomatoes, basil and beans, one bed outlined in red.', ['#f4f1e8', '#c4473a', '#5f8f4e', '#e8b04a'], { at: '2026-03-08 16:10' }),
+    photo('palette.png', 'Five rounded colour swatches in a row: sage, cream, terracotta, deep forest green and marigold.', ['#9cb59a', '#f4f1e8', '#d97b4a', '#2f3e34', '#e8b04a'], { at: '2026-02-22 11:30' }),
+    f('user flow.pdf', { at: '2026-02-28 21:00' }),
+  ], '2026-02-21'),
+  dir('notes', [
+    text('Backlog.md', [
+      '# Backlog',
+      '- [x] Bed grid with drag & drop',
+      '- [x] Companion-planting warnings (red outline)',
+      '- [ ] Watering schedule from local weather',
+      '- [ ] Print a one-page planting plan for the shed door',
+      '- [ ] Share link so Victor can see the plan on his phone',
+    ], { at: '2026-10-18 21:40', since: '2026-02-15 20:00' }),
+    f('Plant data sources.md', { at: '2026-03-01 20:30' }),
+  ], '2026-02-15'),
+  dir('public', [
+    photo('favicon.svg', 'A tiny flat icon of a green seedling with two leaves sprouting from a terracotta pot.', ['#5f8f4e', '#d97b4a', '#ffffff'], { at: '2026-02-16 21:00' }),
+    f('manifest.json', { at: '2026-02-16 21:05' }),
+    f('robots.txt', { at: '2026-02-16 21:05' }),
+  ], '2026-02-15'),
+  dir('src', [
+    dir('components', [
+      f('BedCell.tsx', { at: '2026-09-27 21:30', since: '2026-02-22 20:00' }),
+      f('PlantCard.tsx', { at: '2026-05-10 15:00', since: '2026-03-01 20:00' }),
+      text('PlotGrid.tsx', [
+        "import { checkSpacing } from '../utils/spacing'",
+        "import { BedCell } from './BedCell'",
+        "import type { Bed } from '../types'",
+        '',
+        'export function PlotGrid({ beds, onPlant }: { beds: Bed[]; onPlant: (bedId: string, plantId: string) => void }) {',
+        '  return <div className="plot-grid">{beds.map((bed) =>',
+        '    <BedCell key={bed.id} bed={bed} warnings={checkSpacing(bed)} onDrop={(plantId) => onPlant(bed.id, plantId)} />)}</div>',
+        '}',
+      ], { at: '2026-09-27 21:10', since: '2026-02-22 20:00' }),
+      f('SeasonTimeline.tsx', { at: '2026-06-14 16:20', since: '2026-03-15 20:00' }),
+      f('Sidebar.tsx', { at: '2026-05-03 14:00', since: '2026-02-22 20:30' }),
+      text('WateringSchedule.tsx', [
+        "import { useWeather } from '../utils/weather'",
+        "import type { Bed } from '../types'",
+        '// WIP: litres per bed per week = area × crop factor − forecast rain',
+        'export function WateringSchedule({ beds }: { beds: Bed[] }) {',
+        '  const rain = useWeather()?.rainNext7Days ?? 0',
+        '  return <ul>{beds.map((b) => <li key={b.id}>{b.name}: {Math.max(0, b.areaM2 * 25 - rain * b.areaM2).toFixed(0)} L</li>)}</ul>',
+        '}',
+      ], { at: '2026-10-18 22:15', since: '2026-10-17 20:00' }),
+    ], '2026-02-22'),
+    dir('data', [
+      text('plants.json', [
+        '[',
+        '  { "id": "tomato", "name": "Tomato \'Sungold\'", "spacingCm": 60, "sowIndoorsWeeks": 6, "family": "nightshade" },',
+        '  { "id": "basil", "name": "Genovese basil", "spacingCm": 25, "sowIndoorsWeeks": 4, "family": "mint" },',
+        '  { "id": "bean", "name": "Pole bean \'Blue Lake\'", "spacingCm": 15, "directSow": true, "family": "legume" },',
+        '  { "id": "lettuce", "name": "Butterhead lettuce", "spacingCm": 20, "sowIndoorsWeeks": 4, "family": "aster" }',
+        ']',
+      ], { at: '2026-08-30 17:00', since: '2026-02-28 20:00' }),
+      f('zones.json', { at: '2026-03-01 21:00' }),
+    ], '2026-02-28'),
+    dir('utils', [
+      text('companions.ts', [
+        '// Companion planting: pairs that help (+1) or hinder (-1) each other.',
+        'export const COMPANIONS: Record<string, Record<string, 1 | -1>> = {',
+        '  tomato: { basil: 1, marigold: 1, carrot: 1, fennel: -1, potato: -1 },',
+        '  bean: { corn: 1, squash: 1, onion: -1, garlic: -1 },',
+        '  lettuce: { radish: 1, chive: 1 },',
+        '}',
+        'export const affinity = (a: string, b: string) => COMPANIONS[a]?.[b] ?? COMPANIONS[b]?.[a] ?? 0',
+      ], { at: '2026-04-12 15:30', since: '2026-03-01 20:00' }),
+      text('frost-dates.ts', [
+        "import { addDays, format } from 'date-fns'",
+        '',
+        '// Average last spring frost by hardiness zone (Northern Hemisphere).',
+        "const LAST_FROST: Record<string, string> = { '6a': '05-01', '6b': '04-21', '7a': '04-15', '7b': '04-05' }",
+        '',
+        'export const sowingDate = (zone: string, weeksBefore: number, year: number) =>',
+        "  format(addDays(new Date(`${year}-${LAST_FROST[zone] ?? '04-15'}`), -7 * weeksBefore), 'MMM d')",
+      ], { at: '2026-03-21 16:45', since: '2026-03-14 20:00' }),
+      f('spacing.ts', { at: '2026-09-26 20:50', since: '2026-03-07 20:00' }),
+      f('storage.ts', { at: '2026-05-17 21:00', since: '2026-02-22 21:00' }),
+      f('weather.ts', { at: '2026-10-17 21:30', since: '2026-10-17 20:30' }),
+    ], '2026-02-22'),
+    text('App.tsx', [
+      "import { useState } from 'react'",
+      "import { PlotGrid } from './components/PlotGrid'",
+      "import { SeasonTimeline } from './components/SeasonTimeline'",
+      "import { loadGarden, plant } from './utils/storage'",
+      'export function App() {',
+      '  const [garden, setGarden] = useState(loadGarden)',
+      '  return <main><PlotGrid beds={garden.beds} onPlant={(b, p) => setGarden(plant(garden, b, p))} /><SeasonTimeline zone={garden.zone} /></main>',
+      '}',
+    ], { at: '2026-10-18 21:55', since: '2026-02-15 20:30' }),
+    f('main.tsx', { at: '2026-02-15 20:35' }),
+    f('styles.css', { at: '2026-09-27 21:45', since: '2026-02-15 20:40' }),
+    f('types.ts', { at: '2026-10-17 21:20', since: '2026-02-22 20:10' }),
+  ], '2026-02-15'),
+  f('.gitignore', { at: '2026-02-15 20:20', size: 64 }),
+  f('index.html', { at: '2026-02-16 21:10' }),
+  f('package-lock.json', { at: '2026-10-17 20:40', since: '2026-02-15 20:25', size: 182_406 }),
+  text('package.json', [
+    '{',
+    '  "name": "garden-planner",',
+    '  "version": "0.4.0",',
+    '  "scripts": { "dev": "vite", "build": "tsc && vite build", "test": "vitest" },',
+    '  "dependencies": { "date-fns": "^4.1.0", "react": "^19.1.0", "react-dom": "^19.1.0" },',
+    '  "devDependencies": { "typescript": "~5.9.0", "vite": "^8.0.0", "vitest": "^5.0.0" }',
+    '}',
+  ], { at: '2026-10-17 20:40', since: '2026-02-15 20:25' }),
+  text('README.md', [
+    '# Garden Planner',
+    'Plan raised beds, companion plants and sowing dates for a backyard garden.',
+    '- Drag plants onto a bed grid; spacing rules flag overcrowding',
+    '- Frost-date-aware sowing calendar (zone 7a by default)',
+    '- Watering schedule from bed size and the weather forecast (in progress)',
+    'Run: `npm install` then `npm run dev`',
+  ], { at: '2026-10-18 22:20', since: '2026-02-15 20:15' }),
+  f('tsconfig.json', { at: '2026-02-15 20:30' }),
+  f('vite.config.ts', { at: '2026-02-15 20:30' }),
+], '2026-02-15')
+
+const kitchen = dir('Kitchen Renovation', [
+  dir('Inspiration', [
+    photo('Green zellige backsplash.jpg', 'A kitchen wall of glossy, hand-made green zellige tiles catching morning light behind a brass faucet.', ['#3f7d5c', '#8fbf9f', '#c9a227', '#f2efe6']),
+    photo('Open shelving with walnut.jpg', 'Floating walnut shelves holding stacked white ceramics and copper pots against a cream plaster wall.', ['#5b3a24', '#f1e9dc', '#b87333', '#ffffff']),
+    photo('Rift oak cabinets.jpg', 'Flat-front rift-sawn white oak kitchen cabinets with slim black pulls and a pale quartz counter.', ['#c8a97e', '#ece7df', '#1e1e1e', '#9a8a74']),
+    photo('Island with seating.jpg', 'A long kitchen island in dark walnut with three cane-back stools under globe pendant lights.', ['#4a2f1d', '#d9c7a7', '#f5f0e6', '#a07850']),
+    photo('Pendant lights.jpg', 'Three hand-blown smoked-glass pendant lights glowing above a wooden island at dusk.', ['#6b5a4a', '#e8b878', '#2e2a26', '#c9b49a']),
+    photo('Pantry door idea.jpg', 'A sage-green pantry door with a reeded glass panel and an unlacquered brass knob.', ['#8aa38b', '#d8d2c4', '#b8892f', '#ffffff']),
+  ], '2026-05-04'),
+  dir('Plans', [
+    f('Elevations.pdf', { at: '2026-07-01 18:00' }),
+    f('Kitchen floorplan rev3.dwg', { at: '2026-08-27 16:30', since: '2026-06-15 10:00' }),
+    f('Kitchen floorplan rev3.pdf', { at: '2026-08-27 16:40' }),
+    f('Lighting plan.pdf', { at: '2026-07-20 12:00' }),
+    f('Permit application.pdf', { at: '2026-08-05 09:30' }),
+  ], '2026-06-15'),
+  dir('Progress Photos', [
+    photo('2026-09-08 demo day.jpg', 'A gutted kitchen with bare studs, dangling wires and a pile of old cabinet doors on a dust sheet.', ['#a89a86', '#5c5247', '#e0d6c8', '#3b3631'], { at: '2026-09-08 17:42' }),
+    photo('2026-09-15 new wiring.jpg', 'Fresh yellow electrical cable runs stapled to open wall studs, with new outlet boxes marked in pencil.', ['#e8c33c', '#b08e62', '#d9d2c5', '#4a4038'], { at: '2026-09-15 18:05' }),
+    photo('2026-09-24 drywall up.jpg', 'Smooth new drywall with taped seams and a rectangular opening for a window in an empty kitchen.', ['#e9e5dc', '#c7c0b2', '#8a7f70', '#ffffff'], { at: '2026-09-24 17:30' }),
+    photo('2026-10-06 cabinets arrive.jpg', 'Blanket-wrapped oak cabinet boxes stacked in a hallway beside a delivery dolly.', ['#3c5a7a', '#c8a97e', '#e6e1d8', '#2b2b2b'], { at: '2026-10-06 11:14' }),
+    photo('2026-10-14 cabinets installed.jpg', 'Newly installed white oak cabinets and a walnut island base, with no countertops yet and tools on the floor.', ['#c8a97e', '#4a2f1d', '#e9e5dc', '#6d6d6d'], { at: '2026-10-14 18:20' }),
+    photo('2026-10-21 countertop template.jpg', 'Thin plywood countertop templates clamped onto new cabinets, annotated with marker measurements.', ['#d8b98a', '#c8a97e', '#1e1e1e', '#f2efe6'], { at: '2026-10-21 15:48' }),
+  ], '2026-09-08 08:00'),
+  dir('Quotes', [
+    ...files(
+      'Quote - Bright Spark Electric.pdf',
+      'Quote - Harbor Kitchen & Bath.pdf',
+      'Quote - Mason Brothers Contracting.pdf',
+      'Quote - Stonecraft countertops.pdf',
+    ),
+    f('Quote comparison.xlsx', { at: '2026-07-09 21:30', since: '2026-06-20 20:00' }),
+  ], '2026-06-01'),
+  table('Budget.xlsx',
+    ['Item', 'Budget', 'Quote', 'Paid to date'],
+    [
+      ['Cabinets (Alder & Finch, staff rate)', '$18,500', '$17,900', '$8,950'],
+      ['Countertops (quartz)', '$7,200', '$7,850', '$2,355'],
+      ['Appliances', '$9,800', '$9,420', '$9,420'],
+      ['Plumbing', '$4,500', '$4,980', '$1,500'],
+      ['Electrical & lighting', '$5,200', '$5,640', '$2,820'],
+      ['Flooring (white oak)', '$4,800', '$4,350', '$0'],
+      ['Backsplash tile', '$1,600', 'TBD', '$0'],
+      ['Demolition & labour', '$8,400', '$8,900', '$4,450'],
+      ['Permits & design', '$1,900', '$1,750', '$1,750'],
+      ['Contingency (10%)', '$6,190', '—', '$0'],
+      ['Total', '$68,090', '$60,790 + tile', '$31,245'],
+    ],
+    { at: '2026-10-20 21:50', since: '2026-05-04 20:00' }),
+  text('Decisions log.docx', [
+    'Kitchen decisions log',
+    '12 Jun — Cabinets from the Alder & Finch workshop: rift-sawn white oak fronts, walnut island (staff rate)',
+    "3 Jul — Countertop: quartz 'Calacatta Mist' from Stonecraft (soapstone too soft for us)",
+    '28 Aug — Keep the window where it is; move the sink to the island instead',
+    '9 Oct — Backsplash: zellige green vs plain white — decide by 30 Oct',
+    'Countertop install booked for Tue 3 Nov',
+  ], { at: '2026-10-17 22:00', since: '2026-06-12 21:00' }),
+  f('Timeline.xlsx', { at: '2026-10-12 20:30', since: '2026-05-10 20:00' }),
+], '2026-05-04')
+
+const novel = dir('Novel - The Lantern Keeper', [
+  dir('Chapters', [
+    text('Chapter 01 - The Tide Clock.docx', [
+      'Chapter One — The Tide Clock',
+      'On Varrow, nobody owned a watch. The tide clock in the harbour square told you everything you needed: when the boats could leave, when the causeway would drown, when the lantern had to be lit.',
+      'Mira Hale had wound it every morning for six years, ever since her father climbed the lighthouse stairs for the last time.',
+      'So when the clock stopped at 4:17 on a windless Tuesday, she knew before anyone else that something was coming in from the sea.',
+    ], { at: '2025-11-09 22:40', since: '2024-01-07 21:00' }),
+    f('Chapter 02 - Salt in the Ledger.docx', { at: '2025-11-16 21:30', since: '2024-02-18 21:00' }),
+    f("Chapter 03 - The Keeper's Daughter.docx", { at: '2025-12-07 22:10', since: '2024-04-14 21:00' }),
+    text('Chapter 04 - Fog Signals.docx', [
+      'Chapter Four — Fog Signals',
+      'The fog came in low and fast, swallowing the breakwater one stone at a time.',
+      "Mira counted the horn: two long, one short. Not a Varrow pattern. Not any pattern in her father's book.",
+      "'Someone's out there,' Tobias said, as if she hadn't already reached for her coat.",
+    ], { at: '2026-01-18 23:05', since: '2024-07-21 21:00' }),
+    f('Chapter 05 - What the Gulls Carried.docx', { at: '2026-03-01 22:30', since: '2025-01-12 21:00' }),
+    f('Chapter 06 - A Ship with No Name.docx', { at: '2026-06-28 22:15', since: '2025-06-08 21:00' }),
+    f('Chapter 07 - The Lower Gallery.docx', { at: '2026-09-27 23:20', since: '2026-07-05 21:00' }),
+    text('Chapter 08 - Lantern Weather.docx', [
+      'Chapter Eight — Lantern Weather [ROUGH DRAFT]',
+      "TODO: open on the storm from Ilse's point of view? Or stay with Mira on the gallery?",
+      'The lens turned, and for the first time in a hundred years the light went out on purpose.',
+      "(Still need: what the captain actually wants; pay off the 4:17 clue from chapter one.)",
+    ], { at: '2026-10-11 23:45', since: '2026-09-28 21:00' }),
+  ], '2024-01-07'),
+  dir('Drafts', [
+    f('Cut scenes.docx', { at: '2026-07-19 22:00', since: '2024-05-05 21:00' }),
+    f('Opening - draft A (2024).docx', { at: '2024-01-28 22:00' }),
+    f('Opening - draft B (2024).docx', { at: '2024-03-10 22:00' }),
+    f('Query letter - draft 3.docx', { at: '2026-08-09 21:15', since: '2026-07-26 20:00' }),
+    f('Synopsis (one page).docx', { at: '2026-08-09 21:40', since: '2026-07-26 20:30' }),
+  ], '2024-01-07'),
+  dir('Notes', [
+    text('Characters.docx', [
+      'Characters',
+      'Mira Hale (24) — reluctant lighthouse keeper of Varrow; precise, stubborn, keeps her father’s logbook.',
+      'Tobias Wren (27) — ferryman and Mira’s oldest friend; cheerful, hides his debts.',
+      'Ilse Varga (60s) — harbour-master and keeper of the tide clock’s key; knows more than she says.',
+      'The Captain — unnamed; arrives on the ship with no name in chapter six.',
+    ], { at: '2026-09-06 21:00', since: '2024-01-07 21:30' }),
+    photo('Map of Varrow.png', 'A hand-drawn ink map of a small tidal island with a lighthouse on the northern cliff, a crescent harbour and a winding causeway, washed in watercolour blues and sand tones.', ['#6f9bb5', '#e9dcc0', '#3b4a5a', '#c7a46a'], { at: '2025-02-23 16:30' }),
+    f('Plot outline.docx', { at: '2026-09-28 21:10', since: '2024-01-14 21:00' }),
+    f('Timeline.xlsx', { at: '2026-06-21 20:40', since: '2024-03-03 21:00' }),
+    text('World - the island of Varrow.docx', [
+      'Varrow: a tidal island two miles off the northern coast, reachable by causeway twice a day.',
+      'Population around 400. Economy: herring, kelp and the lighthouse stipend.',
+      'The lantern burned whale oil, then paraffin — 1890s-ish technology, no electricity on the island.',
+      "The tide clock: brass, built 1811; it only stops when the sea 'changes its mind'.",
+    ], { at: '2025-10-12 22:00', since: '2024-01-07 21:40' }),
+  ], '2024-01-07'),
+  f('Manuscript - full draft v0.3.docx', { at: '2026-10-11 23:50', since: '2025-09-14 21:00', size: 1_904_118 }),
+  table('Writing log 2026.xlsx',
+    ['Month', 'Words written', 'Sessions', 'Notes'],
+    [
+      ['Jun 2026', '4,100', '9', 'Chapter 6 done'],
+      ['Jul 2026', '5,850', '13', 'Chapter 7, first half'],
+      ['Aug 2026', '2,300', '5', 'Elena move-in month'],
+      ['Sep 2026', '6,900', '15', 'Chapter 7 finished'],
+      ['Oct 2026', '3,400', '8', 'Chapter 8 in progress'],
+      ['Total', '22,550', '50', ''],
+    ],
+    { at: '2026-10-18 23:10', since: '2026-01-04 21:00' }),
+], '2024-01-07')
+
+const bench = dir('Walnut Bench (woodworking)', between('2026-08-23', '2026-10-18', [
+  dir('Progress', album('2026-09-05 09:00', '2026-10-18 17:00', [
+    ['Glue-up of the seat slab.jpg', 'Three walnut boards being glued into a wide slab, held by a row of orange bar clamps on a workbench.', ['#5b3a24', '#e07b24', '#c9b08a', '#2e2a26']],
+    ['Through-tenons dry fit.jpg', 'Close-up of square walnut through-tenons poking through a thick bench top, with pale maple wedges waiting beside them.', ['#4a2f1d', '#e8d6b0', '#8a6a4a', '#1f1a16']],
+    ['First coat of oil.jpg', 'A walnut bench glowing deep chocolate-brown after its first coat of oil, under a single workshop lamp.', ['#3d2414', '#b8743a', '#f0d9a8', '#1a1612']],
+  ]), '2026-09-05'),
+  photo('Bench sketch - front.png', 'A pencil sketch of a low Shaker-style bench in front elevation, with dimension lines and notes in neat handwriting.', ['#f5f1e8', '#4a4a4a', '#9a9a9a'], { at: '2026-08-25 21:15' }),
+  photo('Bench sketch - joinery detail.png', 'A detailed pencil drawing of a wedged through-tenon joint, shown exploded with arrows and measurements.', ['#f5f1e8', '#3a3a3a', '#b0a58f'], { at: '2026-08-25 21:40' }),
+  table('Cut list.xlsx',
+    ['Part', 'Qty', 'Dimensions (L × W × T)', 'Material'],
+    [
+      ['Seat slab', '1', '60" × 15" × 1¾"', 'Walnut (glued from 3 boards)'],
+      ['Legs', '4', '16½" × 2½" × 2½"', 'Walnut'],
+      ['Long stretcher', '1', '50" × 3" × 1"', 'Walnut'],
+      ['Short stretchers', '2', '11" × 3" × 1"', 'Walnut'],
+      ['Through-tenon wedges', '8', '2½" × 1" × ⅜"', 'Maple (contrast)'],
+      ['Butterfly keys', '3', '3" × 1½" × ⅜"', 'Maple'],
+      ['Total', '', '≈ 22 bd ft walnut, 1 bd ft maple', ''],
+    ],
+    { at: '2026-09-02 21:30', since: '2026-08-24 20:00' }),
+  text('Finish test notes.txt', [
+    'Finish tests on walnut offcuts (October 2026)',
+    'A: Danish oil, 3 coats — warm, slightly orange, easy to repair',
+    'B: Hardwax oil, 2 coats — best feel, soft satin sheen  ← winner',
+    'C: Water-based poly — looks plasticky, raised the grain',
+    'Ben at the workshop says: de-nib with 400 grit between coats, buff with a grey pad.',
+  ], { at: '2026-10-17 16:40', since: '2026-10-03 11:00' }),
+  f('Lumber receipt - Blackwood Timber.pdf', { at: '2026-08-29 12:10' }),
+  f('Walnut bench.skp', { at: '2026-09-27 20:15', since: '2026-08-24 21:00' }),
+]), '2026-08-23')
+
+const archive = dir('Archive', [
+  f('Anniversary slideshow 2024.zip', { at: '2024-06-02 22:00' }),
+  f('Bookshelf build 2022.zip', { at: '2023-03-12 15:00' }),
+  f('Elena science fair 2019.zip', { at: '2023-03-12 15:10' }),
+  f('Garden Planner v0 (spreadsheet).xlsx', { at: '2025-04-20 18:00', since: '2023-04-02 15:00' }),
+  f('Home budget workbook 2021.zip', { at: '2023-03-12 15:20' }),
+  f('Patio pavers 2024.zip', { at: '2024-09-15 17:30' }),
+  f('Treehouse 2023.zip', { at: '2023-10-08 16:00' }),
+], '2023-03-12 14:00')
+
+export const projects: SeedFolder = dir('Projects', [archive, gardenPlanner, kitchen, novel, bench], '2023-03-12 14:00')

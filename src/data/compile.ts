@@ -56,7 +56,8 @@ function shiftDate(iso: string, key: string, maxDays: number): string {
   const d = new Date(iso)
   d.setUTCDate(d.getUTCDate() + (hash(key) % (maxDays + 1)))
   d.setUTCHours(8 + (hash(key + 'h') % 10), hash(key + 'm') % 60, 0, 0)
-  return d.toISOString()
+  // Never earlier than the date it was derived from.
+  return d.toISOString() < iso ? iso : d.toISOString()
 }
 
 export function compile(label: string, root: SeedFolder, rootCreated = '2021-03-14T09:00:00Z'): FsDataset {
