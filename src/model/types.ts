@@ -43,7 +43,7 @@ export interface FileNode extends NodeBase {
 export type FilePreview =
   | { format: 'text'; text: string }
   | { format: 'table'; columns: string[]; rows: string[][] }
-  | { format: 'image'; description: string; palette?: string[] }
+  | { format: 'image'; description: string; palette?: string[]; /** Optional image in public/ */ src?: string }
 
 export type FsNode = FolderNode | FileNode
 

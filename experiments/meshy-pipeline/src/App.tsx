@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Bounds, ContactShadows, Environment, Lightformer } from '@react-three/drei'
 import * as THREE from 'three'
 
-const MODEL_URL = '/assets/library-pavilion.glb'
+const MODEL_URL = '/assets/' + (new URLSearchParams(location.search).get('m') ?? 'library-pavilion') + '.glb'
 
 // Report basic model stats so automated checks can confirm what loaded.
 function Model() {

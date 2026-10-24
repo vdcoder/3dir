@@ -1,37 +1,24 @@
-import { Canvas } from '@react-three/fiber'
-import { Suspense, useEffect } from 'react'
-import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
-import { assetUrl } from './assetUrl'
+import { useState } from 'react'
+import { DetailsCard, PreviewModal } from './ui/Details'
+import { Explorer } from './ui/Explorer'
+import { TopBar } from './ui/TopBar'
+import { World } from './scene/World'
+import './ui/styles.css'
 
-function TestAsset() {
-  const { scene } = useGLTF(assetUrl('assets/library-pavilion.glb'))
-  useEffect(() => {
-    ;(window as unknown as { __appReady: boolean }).__appReady = true
-  }, [])
-  return <primitive object={scene} />
-}
-
-// Placeholder shell for the foundation milestone. The real layout, explorer
-// and world arrive once the product decisions are made.
 export function App() {
+  const [panel, setPanel] = useState(true)
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{ padding: '8px 16px', borderBottom: '1px solid #ddd' }}>
-        3dir — foundation placeholder (fictional data only)
-      </header>
-      <main style={{ flex: 1, minHeight: 0 }}>
-        <Canvas data-testid="world" camera={{ position: [4, 4, 4], fov: 40 }}>
-          <color attach="background" args={['#f2f2f2']} />
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[3, 5, 2]} intensity={1.5} />
-          <Suspense fallback={null}>
-            <Bounds fit clip margin={1.4}>
-              <TestAsset />
-            </Bounds>
-          </Suspense>
-          <OrbitControls makeDefault />
-        </Canvas>
-      </main>
+    <div className="app">
+      <TopBar onTogglePanel={() => setPanel((p) => !p)} />
+      <div className={'main' + (panel ? '' : ' collapsed')}>
+        <Explorer />
+        <div className="world">
+          <World />
+          <DetailsCard />
+          <div className="fictional">Fictional demo computer — no real files</div>
+        </div>
+      </div>
+      <PreviewModal />
     </div>
   )
 }
