@@ -134,6 +134,21 @@ export interface WorldContext {
   depth: number
 }
 
+/**
+ * A landmark: a deliberately chosen, stable marker for an important place
+ * (curated in plan.ts, never derived from usage). A pin rises from the exact
+ * shelf or wall that holds a folder; a tower stands in a campus plaza.
+ */
+export interface LandmarkEntity {
+  nodeId: NodeId
+  kind: 'pin' | 'tower'
+  title: string
+  /** Where it stands (ground or the top of the thing it rises from). */
+  pos: Vec3
+  /** Height of its top above the ground. */
+  top: number
+}
+
 export interface WorldLayout {
   context: WorldContext
   /** The ground everything stands on. */
@@ -147,6 +162,7 @@ export interface WorldLayout {
   fixtures: FixtureEntity[]
   compartments: CompartmentEntity[]
   items: ItemEntity[]
+  landmarks: LandmarkEntity[]
   anchors: Map<NodeId, Anchor>
   importance: Map<NodeId, number>
 }

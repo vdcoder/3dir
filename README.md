@@ -7,13 +7,14 @@ Your files. Your world. — A spatial file explorer and organization system.
 become **areas** you can see from the top of the drive; the folders around them become the **geography** that
 holds them (a district, a block, a fenced yard, a brick square), so you always see where something really
 lives. Inside an area, folders are buildings, rooms, shelves and boxes, and every file is an object you can
-select, preview and find in both views. Any closed box opens into a world of its own, at any depth.
+select, preview and find in both views; binders and pages carry the same file-type icons as the explorer.
+Any closed box opens into a world of its own, at any depth.
 
-![The C: drive: the AmandaMedicalMiami campus at the front, inside its real parent folders](docs/progress/2026-10-24-iteration2/overview.jpg)
+![The C: drive: the AmandaMedicalMiami campus at the front, inside its real parent folders](docs/progress/2026-10-24-milestone-d/overview.jpg)
 
-| AmandaMedicalMiami campus | Its Finance building | Inside a box, ten folders deep |
-| --- | --- | --- |
-| ![](docs/progress/2026-10-24-iteration2/amm-campus.jpg) | ![](docs/progress/2026-10-24-iteration2/amm-finance.jpg) | ![](docs/progress/2026-10-24-iteration2/amm-box.jpg) |
+| AmandaMedicalMiami campus | Its Finance building | Binders labelled by type | Inside a box, ten folders deep |
+| --- | --- | --- | --- |
+| ![](docs/progress/2026-10-24-milestone-d/amm-campus.jpg) | ![](docs/progress/2026-10-24-milestone-d/amm-finance.jpg) | ![](docs/progress/2026-10-24-milestone-d/shelf.jpg) | ![](docs/progress/2026-10-24-milestone-d/amm-box.jpg) |
 
 The product spec is [`docs/PROTOTYPE_CHARTER.md`](docs/PROTOTYPE_CHARTER.md); status, known limitations and
 budget are in [`docs/PROGRESS.md`](docs/PROGRESS.md); asset sources, licenses and credits in
@@ -83,14 +84,16 @@ Every paid call is logged in `assets-src/meshy/assets.jsonl`. See `docs/ASSETS.m
 - `src/data` — the fictional computer (authoring format, compiler, seed content)
 - `src/model` — canonical filesystem types and index (no 3D)
 - `src/mapping` — the Spatial Compiler, from folders to places (no rendering):
-  - `plan.ts` curated importance, themes and pins; `importance.ts` rules for everything else
+  - `plan.ts` curated importance, themes and landmarks; `importance.ts` rules for everything else
   - `areaPlanner.ts` Stage 1a: which folders become areas, and the regions (their real ancestors) around them
   - `geography.ts` Stage 1b: nested, non-overlapping rectangles for regions, areas and roads
   - `areaRenderer.ts` Stage 2: any folder as buildings, rooms, shelves, sections, files and boxes
   - `world.ts` the main map and on-demand box-worlds; which world shows any folder
+  - `landmarks.ts` where each curated landmark stands (pins, the campus clock tower)
   - `decor.ts` decorative props, never pickable
 - `src/state` — navigation rules (location, history, selection per view) and the store
-- `src/ui` — the 2D explorer
-- `src/scene` — the 3D world (React Three Fiber); `pickPolicy.ts` + `picking.tsx` decide what a click means
+- `src/ui` — the 2D explorer; `glyphs.ts` file-type icons shared with the world
+- `src/scene` — the 3D world (React Three Fiber); `pickPolicy.ts` + `picking.tsx` decide what a click means;
+  `fileFaces.ts` draws binder spines, page thumbnails and box labels from the shared glyphs
 - `tools/` — asset tooling; `tests/e2e/` — browser tests and screenshot scenarios
 - `experiments/` — throwaway proofs, not part of the app

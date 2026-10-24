@@ -2,24 +2,16 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import type * as THREE from 'three'
-import { PINS } from '../mapping/plan'
 import type { WorldLayout } from '../mapping/types'
-import { fs } from '../state/store'
 import { useLayout } from './worldData'
 
 export interface Pin { nodeId: string; title: string; x: number; z: number; base: number; top: number }
 
 const noRaycast = () => {}
 
-/** Pins in a world: those whose folder is drawn there, rising from where it physically is. */
+/** Pins in a world, from its planned landmarks (they rise from where the folder physically is). */
 export function pinsFor(layout: WorldLayout): Pin[] {
-  return PINS.flatMap((p) => {
-    const n = fs.resolve(p.path)
-    const a = n ? layout.anchors.get(n.id) : undefined
-    if (!n || !a || layout.context.kind !== 'main') return []
-    const b = layout.anchors.get(a.shownAs)?.bounds ?? a.bounds
-    return [{ nodeId: n.id, title: p.title, x: (b.min[0] + b.max[0]) / 2, z: (b.min[2] + b.max[2]) / 2, base: b.max[1], top: b.max[1] + 3.2 }]
-  })
+  return layout.landmarks.filter((l) => l.kind === 'pin').map((l) => ({ nodeId: l.nodeId, title: l.title, x: l.pos[0], z: l.pos[2], base: l.pos[1], top: l.top }))
 }
 
 export function Pins() {

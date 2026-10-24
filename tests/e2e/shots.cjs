@@ -31,6 +31,14 @@ const clickInWorld = (path) => async (page) => {
   await settle(page)
 }
 const SCENARIOS = {
+  // Milestone D: what files look like up close.
+  'd-shelf': go(`${ONEDRIVE}\\Finance\\Reports\\Quarterly\\2026 Q3`, 'goTo'),
+  'd-desk': go(`${AMM}\\Finance\\Budgets\\AMM budget template.xlsx`, 'goTo'),
+  'd-boxes': go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q2`, 'goTo'),
+  'd-legend': async (page) => {
+    await page.getByRole('button', { name: 'How to use the world' }).click()
+    await settle(page, 1500)
+  },
   // Milestone C states.
   'c-selected': async (page) => {
     await go(`${AMM}\\Finance\\Budgets`)(page)

@@ -248,3 +248,7 @@ button { font: inherit; color: inherit; }
 .wl-focus.under-label.selected { outline: none; }
 .wl-file { padding: 1px 5px; background: rgb(255 255 255 / 94%); border: 1px solid rgb(47 111 219 / 35%); border-radius: 4px; font-size: 10.5px; color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / 12%); }
 .world-buttons .btn:disabled { opacity: 1; color: #b9b5ad; background: #f5f3ef; cursor: default; }
+.wl-area-major .s { display: none; }
+.wl-area-major.hovered .s, .wl-area-major.selected .s { display: block; }
+.legend .kind { display: inline-flex; align-items: center; gap: 4px; }
+.legend .code { font-size: 10px; font-weight: 700; letter-spacing: .02em; }
