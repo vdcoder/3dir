@@ -31,6 +31,16 @@ const timer = setTimeout(() => { console.error('interaction tests timed out'); p
     const row = (name) => page.locator('.list-row', { hasText: name }).first()
     const tree = (name) => page.locator('.tree-row', { hasText: name }).first()
 
+    // 0. First-visit guide is shown, and can be dismissed.
+    check('guide shows on first visit', await page.getByRole('region', { name: 'How to use 3dir' }).isVisible())
+    await page.getByRole('button', { name: 'Got it' }).click()
+
+    // 0b. A pin goes straight to its destination.
+    await page.locator('.wl-pin', { hasText: 'FY2027 Budget' }).click()
+    let s0 = await state()
+    check('pin click goes to the pinned folder', s0.focus.endsWith('Budgets\\FY2027') && s0.exFolder.endsWith('Budgets\\FY2027'), JSON.stringify(s0))
+    await page.getByRole('button', { name: 'Overview' }).click()
+
     // 1. Opening a folder in the tree moves the world (linked).
     await tree('Users').click()
     let s = await state()

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { FileNode, FsNode } from '../model/types'
 import { fs, useStore } from '../state/store'
 import { NodeIcon } from './Icon'
@@ -94,8 +95,14 @@ export function Preview({ file, compact = false }: { file: FileNode; compact?: b
 export function PreviewModal() {
   const id = useStore((s) => s.previewId)
   const node = id ? fs.get(id) : undefined
-  if (!node || node.type !== 'file') return null
   const close = () => useStore.getState().openPreview(null)
+  useEffect(() => {
+    if (!id) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') useStore.getState().openPreview(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [id])
+  if (!node || node.type !== 'file') return null
   return (
     <div className="modal-backdrop" onMouseDown={close} role="dialog" aria-modal aria-label={node.name}>
       <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
