@@ -478,7 +478,7 @@ function addPartitions(out: WorldLayout, buildingId: NodeId, b: Rect, r: Rect, t
 export function emptyLayout(context: WorldLayout['context']): WorldLayout {
   return {
     context, ground: { x: 0, z: 0, w: 0, d: 0 },
-    regions: [], roads: [], areas: [], buildings: [], rooms: [], walls: [], fixtures: [], compartments: [], items: [],
+    regions: [], roads: [], areas: [], buildings: [], rooms: [], walls: [], fixtures: [], compartments: [], items: [], landmarks: [],
     anchors: new Map<NodeId, Anchor>(), importance: new Map(),
   }
 }

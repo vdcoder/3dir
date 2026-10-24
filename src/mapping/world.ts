@@ -12,6 +12,7 @@ import type { FsIndex } from '../model/fs'
 import type { NodeId } from '../model/types'
 import { makeThemeOf, planDrive, type PlanArea, type PlanRegion } from './areaPlanner'
 import { buildArea, emitArea, emptyLayout, rectBox, type AnchorFn, type BuiltArea } from './areaRenderer'
+import { planLandmarks } from './landmarks'
 import { layoutGeography, type Geography } from './geography'
 import { makeImportance, type ImportanceFn } from './importance'
 import { OPEN_LEVELS, type Anchor, type WorldContext, type WorldLayout } from './types'
@@ -66,6 +67,7 @@ export function composeMainWorld(fs: FsIndex, importance: ImportanceFn = makeImp
   out.roads.push(...geography.roads)
   for (const a of geography.areas) emitArea(out, build(a.node), a.rect.x, a.rect.z, a.y, anchor)
   inheritAnchors(fs, out, root.id, importance)
+  out.landmarks = planLandmarks(fs, out)
   return { layout: out, plan, geography }
 }
 
@@ -80,6 +82,7 @@ export function composeBoxWorld(fs: FsIndex, rootId: NodeId, depth: number, impo
   out.ground = { x: x - margin, z: z - margin, w: built.w + 2 * margin, d: built.d + 2 * margin }
   emitArea(out, built, x, z, 0.012, anchorWriter(out))
   inheritAnchors(fs, out, rootId, importance)
+  out.landmarks = planLandmarks(fs, out)
   return out
 }
 

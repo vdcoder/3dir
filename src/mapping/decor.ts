@@ -89,11 +89,8 @@ export function planDecor(layout: WorldLayout, nameOf: (id: NodeId) => string): 
     const cx = p.x + p.w / 2
     const cz = p.z + p.d / 2
     outdoor.place('fountain', cx, cz, 0, { force: true })
-    // The heart of the computer gets a clock tower: a landmark you can find from anywhere.
-    if ((layout.importance.get(a.nodeId) ?? 0) >= 0.99) {
-      const s = outdoor.spot('clock-tower', fromRect(p, -0.4), 0, (x, z) => -Math.abs(x - (p.x + 2.2)) - Math.abs(z - (p.z + 2.2)), 0.4, 0.2)
-      if (s) outdoor.place('clock-tower', s[0], s[1], 0, { pad: 0.2 })
-    }
+    // Landmark towers stand where the compiler put them (see landmarks.ts).
+    for (const l of layout.landmarks) if (l.kind === 'tower' && l.nodeId === a.nodeId) outdoor.place('clock-tower', l.pos[0], l.pos[2], 0, { pad: 0.2, force: true })
     const r = footprint('fountain')[0] / 2 + 1.7
     for (const [dx, dz] of [[r, 0], [-r, 0], [0, r], [0, -r]]) outdoor.place('bench', cx + dx, cz + dz, facing(cx + dx, cz + dz, cx, cz), { pad: 0.05 })
     const inset = 1.9

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { SHORT } from './glyphs'
+import { FolderIcon, KindIcon } from './Icon'
 import { KIND_STYLE } from './kinds'
 
 const KEY = '3dir.guide.dismissed'
@@ -40,11 +42,13 @@ export function Guide() {
         <li><b className="star">★</b> pins go straight to important places</li>
       </ul>
       {full && (
-        <div className="legend" aria-label="File colors">
+        <div className="legend" aria-label="File types">
           {LEGEND.map((k) => (
-            <span key={k}><i style={{ background: KIND_STYLE[k].color }} />{KIND_STYLE[k].label.replace(' document', '').replace('Compressed archive', 'Archive')}</span>
+            <span key={k} className="kind" title={KIND_STYLE[k].label}>
+              <KindIcon kind={k} size={16} /><span className="code" style={{ color: KIND_STYLE[k].color }}>{SHORT[k]}</span>
+            </span>
           ))}
-          <span><i style={{ background: '#c8a275' }} />Closed folder box</span>
+          <span className="kind"><FolderIcon size={16} />Closed box: a folder you can open</span>
         </div>
       )}
       <button className="btn primary" onClick={close} autoFocus>Got it</button>

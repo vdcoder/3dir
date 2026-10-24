@@ -4,7 +4,7 @@ Authoritative product spec: [`docs/PROTOTYPE_CHARTER.md`](PROTOTYPE_CHARTER.md).
 
 Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`).
 
-## Current status (2026-10-24, iteration 2: milestones A, B and C)
+## Current status (2026-10-24, iteration 2: milestones A, B, C and D)
 
 ### What the review findings turned out to be
 Reproduced before changing anything (see `src/state/navigation.test.ts`, first five cases):
@@ -61,14 +61,31 @@ Reproduced before changing anything (see `src/state/navigation.test.ts`, first f
   - **First visit:** a one-line guide along the bottom instead of a card over the map; the color key appears
     only when asking for help with "?".
   - Labels never slide under the world's controls; long paths keep their end in view.
+- **Milestone D, semantic and visual refinement**
+  - **Files say what they are without a color key.** Binder spines carry the explorer's file-type icon and a
+    type code (XLS, DOC, PDF, PPT, IMG, CODE, ZIP…); papers on desks show a page thumbnail (a spreadsheet grid,
+    document lines, a slide with a chart, a photo, code); closed folder boxes carry a folder label. The
+    explorer's icons and the world's labels are drawn from one shared glyph set (`src/ui/glyphs.ts`).
+    The "?" key shows those icons and codes rather than color swatches.
+  - **Landmarks are first-class.** `LANDMARKS` in `plan.ts` is the curated list (never usage-based); the
+    compiler places them (`src/mapping/landmarks.ts`) into each world's `landmarks`: pins rise from the shelf
+    or wall that holds the folder, and the AmandaMedicalMiami clock tower stands at a fixed spot in its plaza.
+    Decoration and rendering only read them.
+  - **Camera framing.** Areas are framed by their buildings, not their whole pad (box-worlds come in closer).
+    Tall props (trees, the tower, lamps) step aside when they stand in front of what you came to see, or fill
+    a third of the view.
+  - **Quieter rest view.** Major areas show just their name; their path appears on hover or selection (the
+    campus keeps its path).
 - Free lawn inside districts and blocks is planted with trees, so leftover ground reads as parkland.
 - Dataset: 343 folders, 1,074 files, up to 12 levels deep; 21 folders are reached through box-worlds.
 
 ### Tested
-- Unit (60): filesystem index; navigation (12, including the reproduced bugs); picking policy (8); compiler
+- Unit (65): filesystem index; navigation (12, including the reproduced bugs); picking policy (8); compiler
   (15: absorber metaphors, campus, residual areas, every folder placed exactly once, no invented folders,
   containment, no overlaps, front placement, determinism, **no dead ends**, every file visible somewhere,
-  the deep Chrome path, box entry changes world but not folder); dataset consistency.
+  the deep Chrome path, box entry changes world but not folder); landmarks (5: exactly the curated ones, stable
+  across rebuilds, pins on their folder's shelf, tower in its plaza clear of the fountain, none in box-worlds);
+  dataset consistency.
 - Browser: `npm run test:e2e` (also under `/3dir/`: 19 models and 40 photos load) and
   `npm run test:interactions` (38 checks: guide, pins, one set of controls while linked, tree, list, world click
   selects without navigating or touching history, binder-not-shelf picking, details docked beside the world,
@@ -98,18 +115,30 @@ Milestone C (`docs/progress/2026-10-24-milestone-c/`):
 
 Also `hover-box.jpg` (hovering a closed box) and `first-visit.jpg` (one-line guide).
 
+Milestone D (`docs/progress/2026-10-24-milestone-d/`):
+
+| Binders with type labels | Pages on a desk | Folder boxes | Finance, unobstructed |
+| --- | --- | --- | --- |
+| ![](progress/2026-10-24-milestone-d/shelf.jpg) | ![](progress/2026-10-24-milestone-d/desk.jpg) | ![](progress/2026-10-24-milestone-d/boxes.jpg) | ![](progress/2026-10-24-milestone-d/amm-finance.jpg) |
+
+Also `overview.jpg` (quieter labels), `amm-campus.jpg`, `amm-box.jpg` and `legend.jpg` (the "?" key).
+
 ### Broken / unfinished / known limitations
 - Reveal mode names files only where their names fit; dense shelves show a few at a time (outlines show all).
 - On browsers where Alt opens a menu bar, use the Reveal button.
-- **Milestone D not started:** file kinds still rely on color and a legend; camera framing in box-worlds is
-  too far out; the clock tower and trees can stand between the camera and a framed building.
+- Type codes are per kind (a .csv shows XLS); file faces are drawn textures, not new models.
+- Box-worlds still show some empty cardboard around small folders.
+- Representation variety (finding G) comes from themes, region metaphors, signature colors and file faces;
+  further variety (distinct archetypes for Downloads, Desktop or home interiors) would want new 3D assets,
+  which are on hold.
 - Region signs give way to more important labels when they collide (by design), so some regions are named
   only by their sign on the ground and in the campus label's path.
 - Performance verified only in headless software rendering (slow but correct).
 
 ### Next
-1. **Milestone D:** recognizable file forms (not color alone), signage and landmarks, area variety, label
-   density and camera framing (box-worlds, occluders).
+1. Owner review of iteration 2 on a real GPU (navigation, box-worlds, picking, the new layout, file faces).
+2. Candidates, pending that review: more representation variety (would justify specific new assets, which
+   need approval), wayfinding signs at region gates, and a first-person or guided-tour camera (postponed).
 
 ## Earlier checkpoints
 - **Iteration 1 (flagship, accepted):** synthetic computer, 2D explorer, spatial world with the Alder & Finch
@@ -126,7 +155,8 @@ npm run build
 npm run test:e2e            # smoke test (BASE_PATH=/3dir/ to test the Pages build)
 npm run test:interactions   # navigation, picking and explorer/world synchronization
 npm run shots -- <outDir> [overview amanda documents amm-campus amm-finance amm-clients amm-box chrome-box
-                           first-visit business finance budgets budget-file ...]
+                           first-visit c-selected c-reveal c-hover-box c-in-box c-unlinked
+                           d-shelf d-desk d-boxes d-legend business finance budgets budget-file ...]
 ```
 
 ## Budget

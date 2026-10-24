@@ -68,8 +68,17 @@ export function CameraRig() {
           min: [Math.min(b.min[0], (b.min[0] + b.max[0]) / 2 - minSize / 2), b.min[1], Math.min(b.min[2], (b.min[2] + b.max[2]) / 2 - minSize / 2)],
           max: [Math.max(b.max[0], (b.min[0] + b.max[0]) / 2 + minSize / 2), b.max[1], Math.max(b.max[2], (b.min[2] + b.max[2]) / 2 + minSize / 2)],
         }
-      : b
+      : { min: [...b.min], max: [...b.max] }
     const wide = a.level === 'region' || a.level === 'area'
+    // An area is framed by its buildings (with a little ground), not its whole pad.
+    const own = a.level === 'area' ? layout.buildings.filter((x) => x.areaId === a.nodeId) : []
+    if (own.length) {
+      const m = 1.6
+      grown.min[0] = Math.max(grown.min[0], Math.min(...own.map((x) => x.rect.x)) - m)
+      grown.min[2] = Math.max(grown.min[2], Math.min(...own.map((x) => x.rect.z)) - m)
+      grown.max[0] = Math.min(grown.max[0], Math.max(...own.map((x) => x.rect.x + x.rect.w)) + m)
+      grown.max[2] = Math.min(grown.max[2], Math.max(...own.map((x) => x.rect.z + x.rect.d)) + m)
+    }
     frame(c, camera, grown, wide ? OVERVIEW_POLAR - 0.04 : a.level === 'item' || a.level === 'box' ? 0.72 : CLOSE_POLAR, smooth, smooth ? undefined : DEFAULT_AZIMUTH)
   }, [layout, camera])
 

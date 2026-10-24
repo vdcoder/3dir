@@ -71,13 +71,16 @@ export const ROOM_RESERVE: Record<string, [number, number]> = {
 }
 
 /**
- * Landmark pins: deliberately placed, stable shortcuts to important places
- * that are smaller than an area. Each rises from the exact shelf or wall that
- * holds the folder; the folder keeps its real path.
+ * Landmarks: deliberately chosen, stable markers for important places. They
+ * are curated here, never derived from how often something is used.
+ * - `tower`: a clock tower in the plaza of a campus, visible from anywhere.
+ * - `pin`: a shortcut to a place smaller than an area, rising from the exact
+ *   shelf or wall that holds the folder; the folder keeps its real path.
  */
-export const PINS: { path: string; title: string }[] = [
-  { path: `${ONEDRIVE}\\Finance\\Budgets\\FY2027`, title: 'FY2027 Budget' },
-  { path: `${ONEDRIVE}\\Finance\\Reports\\Quarterly\\2026 Q3`, title: 'Q3 2026 Reports' },
-  { path: `${AMANDA}\\Pictures\\Travel\\2026 Kyoto`, title: 'Kyoto 2026' },
-  { path: `${AMANDA}\\Projects\\Garden Planner App`, title: 'Garden Planner App' },
+export const LANDMARKS: { path: string; kind: 'pin' | 'tower'; title: string }[] = [
+  { path: AMM, kind: 'tower', title: 'AmandaMedicalMiami' },
+  { path: `${ONEDRIVE}\\Finance\\Budgets\\FY2027`, kind: 'pin', title: 'FY2027 Budget' },
+  { path: `${ONEDRIVE}\\Finance\\Reports\\Quarterly\\2026 Q3`, kind: 'pin', title: 'Q3 2026 Reports' },
+  { path: `${AMANDA}\\Pictures\\Travel\\2026 Kyoto`, kind: 'pin', title: 'Kyoto 2026' },
+  { path: `${AMANDA}\\Projects\\Garden Planner App`, kind: 'pin', title: 'Garden Planner App' },
 ]

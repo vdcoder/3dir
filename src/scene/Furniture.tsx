@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { assetUrl } from '../assetUrl'
@@ -8,6 +8,7 @@ import type { NodeId } from '../model/types'
 import { fs } from '../state/store'
 import { KIND_STYLE } from '../ui/kinds'
 import { Boxes, type BoxSpec } from './Boxes'
+import { atlasMaterial, CELLS, fileFaces, kindCell, setRepaintHook } from './fileFaces'
 import { PALETTE, useLayout } from './worldData'
 
 const SHELF_BASE = 0.14
@@ -93,37 +94,83 @@ function itemColor(it: ItemEntity): string {
   return KIND_STYLE[it.kind].color
 }
 
-/** Every visible file (and archive box) as an instanced, pickable object. */
+/** Every visible file (and folder box) as an instanced, pickable object with a face that says what it is. */
 export function Items() {
   const layout = useLayout()
   useInvalidateBridge()
-  const { bodies, labels } = useMemo(() => {
+  const { bodies, spines, pages, boxes } = useMemo(() => {
     const bodies: BoxSpec[] = []
-    const labels: BoxSpec[] = []
+    const spines: Decal[] = []
+    const pages: Decal[] = []
+    const boxes: Decal[] = []
     for (const it of layout.items) {
       bodies.push({ pos: it.pos, size: it.size, color: itemColor(it) })
       const [x, y, z] = it.pos
       const [w, h, d] = it.size
+      const cell = it.kind === 'folder' ? 0 : kindCell(it.kind)
       if (it.form === 'spine') {
-        // A small paper label on the spine, like a binder.
-        labels.push({ pos: [x, y + h * 0.18, z + d / 2 + 0.002], size: [w * 0.62, Math.min(0.07, h * 0.2), 0.004], color: '#f6f3ec' })
+        // A binder's spine label: type icon and code, like a real archive shelf.
+        const lw = w * 0.74
+        const lh = Math.min(lw * 4, h * 0.82)
+        spines.push({ pos: [x, y + h / 2 - lh / 2 - h * 0.06, z + d / 2 + 0.002], size: [lw, lh], cell })
       } else if (it.form === 'box') {
-        labels.push({ pos: [x, y + h * 0.1, z + d / 2 + 0.002], size: [w * 0.55, h * 0.3, 0.004], color: '#f3efe6' })
-      } else if (it.form === 'frame') {
+        boxes.push({ pos: [x, y + h * 0.1, z + d / 2 + 0.002], size: [w * 0.55, h * 0.3], cell: 0 })
       } else if (it.form === 'paper') {
-        labels.push({ pos: [x, y + h / 2 + 0.002, z], size: [w * 0.8, 0.003, d * 0.8], color: '#fbfaf6' })
+        pages.push({ pos: [x, y + h / 2 + 0.002, z], size: [w * 0.94, d * 0.94], cell, up: true })
       }
     }
-    return { bodies, labels }
+    return { bodies, spines, pages, boxes }
   }, [layout])
+  const faces = fileFaces()
+  const mats = useMemo(() => ({
+    spines: atlasMaterial(faces.spines, CELLS, { roughness: 0.8 }),
+    pages: atlasMaterial(faces.pages, CELLS, { roughness: 0.9 }),
+    boxes: atlasMaterial(faces.box, 1, { roughness: 0.9 }),
+  }), [faces])
 
   return (
     <group>
       <Boxes boxes={bodies} roughness={0.7} pick={(i) => layout.items[i]?.nodeId ?? null} />
-      <Boxes boxes={labels} castShadow={false} roughness={0.9} />
+      <Decals decals={spines} material={mats.spines} />
+      <Decals decals={pages} material={mats.pages} />
+      <Decals decals={boxes} material={mats.boxes} />
       <Pictures />
     </group>
   )
+}
+
+interface Decal { pos: [number, number, number]; size: [number, number]; cell: number; up?: boolean }
+
+const noRaycast = () => {}
+const UP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2)
+const FRONT = new THREE.Quaternion()
+
+/** Flat faces (labels, page thumbnails) in one draw call, each showing one atlas cell. Never pickable. */
+function Decals({ decals, material }: { decals: Decal[]; material: THREE.Material }) {
+  const ref = useRef<THREE.InstancedMesh>(null)
+  const invalidate = useThree((s) => s.invalidate)
+  const geometry = useMemo(() => {
+    const g = new THREE.PlaneGeometry(1, 1)
+    g.setAttribute('decalCell', new THREE.InstancedBufferAttribute(new Float32Array(decals.map((d) => d.cell)), 1))
+    return g
+  }, [decals])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  useEffect(() => { setRepaintHook(invalidate) }, [invalidate])
+  useLayoutEffect(() => {
+    const mesh = ref.current
+    if (!mesh) return
+    const m = new THREE.Matrix4()
+    const p = new THREE.Vector3()
+    const sc = new THREE.Vector3()
+    decals.forEach((d, i) => {
+      m.compose(p.set(...d.pos), d.up ? UP : FRONT, sc.set(d.size[0], d.size[1], 1))
+      mesh.setMatrixAt(i, m)
+    })
+    mesh.instanceMatrix.needsUpdate = true
+    mesh.computeBoundingSphere()
+  }, [decals])
+  if (decals.length === 0) return null
+  return <instancedMesh ref={ref} args={[geometry, material, decals.length]} receiveShadow raycast={noRaycast} />
 }
 
 const pictureGeometry = new THREE.PlaneGeometry(1, 1)
