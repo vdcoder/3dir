@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fs, ROOT_ID, useStore } from '../state/store'
@@ -42,7 +42,7 @@ function Lights() {
 }
 
 /** Signals automated tests that the first frame with the full world has rendered. */
-function ReadySignal() {
+function ReadySignal({ onReady }: { onReady(): void }) {
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
@@ -51,13 +51,15 @@ function ReadySignal() {
     const timers = [500, 1500, 3000, 6000].map((t) => setTimeout(refreshShadows, t))
     const id = requestAnimationFrame(() => requestAnimationFrame(() => {
       ;(window as unknown as { __appReady: boolean }).__appReady = true
+      onReady()
     }))
     return () => { cancelAnimationFrame(id); timers.forEach(clearTimeout) }
-  }, [gl, invalidate])
+  }, [gl, invalidate, onReady])
   return null
 }
 
 export function World() {
+  const [ready, setReady] = useState(false)
   return (
     <>
       <Canvas
@@ -78,7 +80,7 @@ export function World() {
         <Highlight />
         <CameraRig />
         <LabelUpdater />
-        <ReadySignal />
+        <ReadySignal onReady={markReady(setReady)} />
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO aoRadius={1.6} distanceFalloff={0.6} intensity={2.2} aoSamples={12} denoiseSamples={6} halfRes color="#3a2f22" />
           <SMAA />
@@ -86,8 +88,17 @@ export function World() {
       </Canvas>
       <LabelLayer />
       <WorldHud />
+      {!ready && <div className="loading" role="status"><div className="spinner" />Building your world…</div>}
     </>
   )
+}
+
+// Stable callback per setter, so the ready effect runs once.
+const readyCallbacks = new WeakMap<(v: boolean) => void, () => void>()
+function markReady(set: (v: boolean) => void) {
+  let cb = readyCallbacks.get(set)
+  if (!cb) { cb = () => set(true); readyCallbacks.set(set, cb) }
+  return cb
 }
 
 function WorldHud() {

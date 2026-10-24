@@ -59,6 +59,7 @@ const freePort = () => new Promise((resolve) => {
       await page.goto(`http://localhost:${port}/`)
       await page.waitForFunction(() => window.__appReady === true, null, { timeout: 150_000 })
       await page.waitForTimeout(1500)
+      if (name !== 'overview') await page.getByRole('button', { name: 'Got it' }).click().catch(() => {})
       try { await run(page) } catch (e) { errors.push(`${name}: ${e.message}`) }
       await page.screenshot({ path: join(out, `${name}.png`), timeout: 120_000 })
       await browser.close()

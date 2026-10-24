@@ -108,7 +108,14 @@ export function LabelLayer() {
           ref={(el) => { if (el) refs.set(c.key, el); else refs.delete(c.key) }}
           className={`wl wl-${c.level}`}
           style={{ display: 'none' }}
-          onClick={(e) => { e.stopPropagation(); if (c.nodeId) useStore.getState().worldSelect(c.nodeId) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (!c.nodeId) return
+            // A pin is a destination: one click goes there.
+            if (c.level === 'pin') useStore.getState().worldEnter(c.nodeId)
+            else useStore.getState().worldSelect(c.nodeId)
+          }}
+          title={c.level === 'pin' ? `Go to ${fs.path(c.nodeId!)}` : c.nodeId ? fs.path(c.nodeId) : undefined}
           onDoubleClick={(e) => { e.stopPropagation(); if (c.nodeId && fs.get(c.nodeId)?.type === 'folder') useStore.getState().worldEnter(c.nodeId) }}
           onPointerEnter={() => c.nodeId && useStore.getState().setHover(c.nodeId)}
           onPointerLeave={() => c.nodeId && useStore.getState().hoverId === c.nodeId && useStore.getState().setHover(null)}
@@ -179,7 +186,7 @@ export function LabelUpdater() {
       const tries: [number, number][] = c.level === 'district'
         ? [[0, 0], [0, -h - 6], [0, h * 0.6], [0, h + 8], [0, -2 * h - 12]]
         : c.level === 'pin'
-          ? [[0, 0], [w * 0.55, 0], [-w * 0.55, 0], [0, h * 0.6], [w * 0.55, h * 0.6], [-w * 0.55, h * 0.6], [0, h + 8]]
+          ? [[0, 0], [w * 0.55, 0], [-w * 0.55, 0], [0, h * 0.6], [w * 0.55, h * 0.6], [-w * 0.55, h * 0.6], [w * 0.55, -h * 0.8], [-w * 0.55, -h * 0.8], [0, h + 8], [w * 0.6, h + 8], [-w * 0.6, h + 8]]
           : [[0, 0]]
       let lift = NaN
       let shift = 0

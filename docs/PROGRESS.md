@@ -27,14 +27,16 @@ Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`
   - **Studio**: project rooms with workbenches and drafting tables.
   - Dollhouse cutaway (walls facing the camera drop to a sill), ambient occlusion, soft shadows rendered on
     demand, textured floors and paving, ranked labels with collision avoidance.
+- **Demo polish**: first-visit guide with a file-color legend (reopen with "?"), loading screen, one-click
+  pins, Esc closes previews, narrower layout on smaller screens, favicon, README tour with screenshots.
 - **Synchronization** as approved, plus an **off-screen indicator**: selecting something out of view never moves
   the camera; an edge pointer names it and shows it on click. Files inside closed archive boxes are tagged.
 
 ### Tested
 - Unit (32): filesystem index, navigation rules, layout invariants, dataset consistency.
 - Browser: `npm run test:e2e` (also under `/3dir/`: all 19 prop models and 40 photos load) and
-  `npm run test:interactions` (21 checks: tree, list, double-click, linked on/off, Show in World, search,
-  world click, off-screen indicator, Up, Overview).
+  `npm run test:interactions` (23 checks: guide, pins, tree, list, double-click, linked on/off, Show in World,
+  search, world click, off-screen indicator, Up, Overview).
 - Screenshots: `docs/progress/2026-10-24-flagship/`.
 
 ### Broken / unfinished / known limitations
@@ -43,11 +45,11 @@ Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`
 - Labels can still crowd at some angles in dense areas; lower-priority labels hide rather than overlap.
 - Some albums (Camera Roll, Screenshots, Holidays, Home) show palette gradients instead of photos.
 - Performance verified only in headless software rendering (slow but correct); a real GPU should be smooth.
-- No first-visit guidance yet.
+- No alternate visual configuration (the charter's optional second view) and no first-person camera (optional).
 
 ### Next
-1. Demo polish: short first-visit guide, file-color legend, keyboard shortcuts, cozier homes.
-2. End-to-end demo route check against the charter walkthrough; README screenshots.
+1. Owner review of the live demo on a real GPU; tune lighting, label density and camera speeds from feedback.
+2. Optional: cozier homes, more gallery photos, an alternate visual configuration (423 credits remain).
 
 ## Repeatable test steps
 
