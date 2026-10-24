@@ -37,7 +37,6 @@ procedural rooms with generated furniture placed inside, rather than generated c
 
 ## Outstanding defects / concerns
 
-- Meshy license terms for the paid plan are not verified (terms pages blocked here).
 - Asset files are committed to git directly. If we generate many, consider Git LFS.
 
 ## Repeatable test steps
