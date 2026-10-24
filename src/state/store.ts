@@ -34,7 +34,6 @@ interface Store extends nav.NavState {
   toggleExpanded(id: NodeId): void
   setHover(id: NodeId | null): void
   openPreview(id: NodeId | null): void
-  closeDetails(): void
   setRevealMode(on: boolean): void
 
   // Short names used across the UI.
@@ -78,7 +77,6 @@ export const useStore = create<Store>((set) => {
     setLinked: (linked) => apply((s) => nav.setLinked(fs, s, linked)),
     toggleExpanded: (id) => set((s) => nav.toggleExpanded(s, id)),
     setHover: (hoverId) => set({ hoverId }),
-    closeDetails: () => set({ detailsId: null }),
     openPreview: (previewId) => set({ previewId }),
     setRevealMode: (revealMode) => set({ revealMode }),
 

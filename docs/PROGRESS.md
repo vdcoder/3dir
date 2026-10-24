@@ -4,7 +4,7 @@ Authoritative product spec: [`docs/PROTOTYPE_CHARTER.md`](PROTOTYPE_CHARTER.md).
 
 Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`).
 
-## Current status (2026-10-24, iteration 2: milestones A and B)
+## Current status (2026-10-24, iteration 2: milestones A, B and C)
 
 ### What the review findings turned out to be
 Reproduced before changing anything (see `src/state/navigation.test.ts`, first five cases):
@@ -45,6 +45,22 @@ Reproduced before changing anything (see `src/state/navigation.test.ts`, first f
   Finance, Operations, Legal and Clients. It is the campus at the front of the C: map, inside the Business
   square, inside the Documents yard, inside Amanda's block, inside the Users district: its real ancestry is
   visible from the overview. Signature colors per building, fountain, clock tower, benches, delivery van.
+- **Milestone C, interaction and interface**
+  - **One set of controls.** Linked: Back / Forward / Up and the path live only in the top bar (the path marks
+    opened boxes with ▣); the world corner keeps Overview and Reveal. Unlinked: the top bar is tagged
+    "Explorer" and the world gets its own path and Back / Forward / Up. In the details, linked shows one
+    **Show location**; unlinked shows **Show in World** and **Show in Explorer**.
+  - **Docked details.** The floating card is gone: details sit at the bottom of the explorer pane (collapsible,
+    remembered), or as a small sheet when the pane is hidden. Selecting siblings in the world is never blocked.
+  - **Hover and selection tags** say what a thing is and what double-click does ("Spreadsheet (.xlsx) · 403 KB ·
+    double-click to open", "Closed box · 3 items · double-click to open it", "Folder · 6 items · double-click to
+    go inside"). Tooltips no longer repeat it.
+  - **Reveal mode:** hold **Alt** (or press Reveal) to name everything in view, including files and boxes, and
+    outline every building, room, shelf and box. Release to return to the quiet rest view.
+  - **Inside a box**, a chip says which box and offers **Leave box**.
+  - **First visit:** a one-line guide along the bottom instead of a card over the map; the color key appears
+    only when asking for help with "?".
+  - Labels never slide under the world's controls; long paths keep their end in view.
 - Free lawn inside districts and blocks is planted with trees, so leftover ground reads as parkland.
 - Dataset: 343 folders, 1,074 files, up to 12 levels deep; 21 folders are reached through box-worlds.
 
@@ -54,10 +70,12 @@ Reproduced before changing anything (see `src/state/navigation.test.ts`, first f
   containment, no overlaps, front placement, determinism, **no dead ends**, every file visible somewhere,
   the deep Chrome path, box entry changes world but not folder); dataset consistency.
 - Browser: `npm run test:e2e` (also under `/3dir/`: 19 models and 40 photos load) and
-  `npm run test:interactions` (25 checks: guide, pins, tree, list, world click selects without navigating or
-  touching history, binder-not-shelf picking, Up canonical, Back/Forward, deep Chrome folder, double-click a box
-  opens its box-world, Up leaves it, Back re-enters it, unlinked independence, Show in World, search,
-  off-screen indicator, Overview).
+  `npm run test:interactions` (38 checks: guide, pins, one set of controls while linked, tree, list, world click
+  selects without navigating or touching history, binder-not-shelf picking, details docked beside the world,
+  clicking a sibling with details open, selection and hover tags, Alt reveal and release, Up canonical,
+  Back/Forward, deep Chrome folder, double-click a box opens its box-world, Up leaves it, Back re-enters it,
+  Leave box, unlinked controls and independence, Show in World, search, off-screen indicator, Overview).
+  Checks poll for what the next frames should show (software rendering draws about one frame a second).
 
 ### Before / after
 Before: `docs/progress/2026-10-24-flagship/`. After: `docs/progress/2026-10-24-iteration2/`.
@@ -72,10 +90,17 @@ Before: `docs/progress/2026-10-24-flagship/`. After: `docs/progress/2026-10-24-i
 Also: `amm-finance`, `amm-clients`, `amm-box` (…\Clients\Biscayne Senior Living\Orders\2026\Q3), `amanda`,
 `documents`.
 
+Milestone C (`docs/progress/2026-10-24-milestone-c/`):
+
+| Selection, docked details | Alt held: reveal | Inside a box | Unlinked |
+| --- | --- | --- | --- |
+| ![](progress/2026-10-24-milestone-c/selected.jpg) | ![](progress/2026-10-24-milestone-c/reveal.jpg) | ![](progress/2026-10-24-milestone-c/in-box.jpg) | ![](progress/2026-10-24-milestone-c/unlinked.jpg) |
+
+Also `hover-box.jpg` (hovering a closed box) and `first-visit.jpg` (one-line guide).
+
 ### Broken / unfinished / known limitations
-- **Milestone C not started:** the top bar and the world corner both have back/forward/up; the details card
-  still floats over the world; Alt reveal mode exists in state but has no key yet; the first-visit guide covers
-  part of the map.
+- Reveal mode names files only where their names fit; dense shelves show a few at a time (outlines show all).
+- On browsers where Alt opens a menu bar, use the Reveal button.
 - **Milestone D not started:** file kinds still rely on color and a legend; camera framing in box-worlds is
   too far out; the clock tower and trees can stand between the camera and a framed building.
 - Region signs give way to more important labels when they collide (by design), so some regions are named
@@ -83,10 +108,7 @@ Also: `amm-finance`, `amm-clients`, `amm-box` (…\Clients\Biscayne Senior Livin
 - Performance verified only in headless software rendering (slow but correct).
 
 ### Next
-1. **Milestone C:** one set of navigation controls while linked (independent ones when unlinked); a docked,
-   collapsible inspector in place of the floating details card; hover and selection action hints; Alt held
-   for reveal mode; a guide that doesn't cover the map.
-2. **Milestone D:** recognizable file forms (not color alone), signage and landmarks, area variety, label
+1. **Milestone D:** recognizable file forms (not color alone), signage and landmarks, area variety, label
    density and camera framing (box-worlds, occluders).
 
 ## Earlier checkpoints

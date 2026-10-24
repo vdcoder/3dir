@@ -3,6 +3,7 @@ import type { FsNode, NodeId } from '../model/types'
 import { DEMO_HOME_ID, fs, ROOT_ID, useStore } from '../state/store'
 import { NodeIcon } from './Icon'
 import { formatDate, formatSize } from './kinds'
+import { Inspector } from './Details'
 
 export function Explorer() {
   return (
@@ -12,6 +13,7 @@ export function Explorer() {
         <span>Contents</span>
       </div>
       <FileList />
+      <Inspector />
     </aside>
   )
 }

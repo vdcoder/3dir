@@ -1,8 +1,8 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import type * as THREE from 'three'
+import * as THREE from 'three'
 import { Line } from '@react-three/drei'
-import type { AABB } from '../mapping/types'
+import type { AABB, AnchorLevel } from '../mapping/types'
 import type { NodeId } from '../model/types'
 import { useStore } from '../state/store'
 import { useLayout } from './worldData'
@@ -61,5 +61,30 @@ export function Highlight() {
       {hoverId && hoverId !== selectedId && <Outline id={hoverId} color="#f0b429" width={2} />}
       {selectedId && <Outline id={selectedId} color="#2f6fdb" width={3} beacon />}
     </group>
+  )
+}
+
+const REVEALED: AnchorLevel[] = ['building', 'room', 'fixture', 'box']
+
+/** Reveal mode: thin outlines around everything you can go into or open. Never pickable. */
+export function RevealOutlines() {
+  const layout = useLayout()
+  const on = useStore((s) => s.revealMode)
+  const geometry = useMemo(() => {
+    const pts: number[] = []
+    for (const a of layout.anchors.values()) {
+      if (a.shownAs !== a.nodeId || !REVEALED.includes(a.level)) continue
+      for (const p of edges(a.bounds, a.level === 'box' ? 0.01 : 0.03)) pts.push(...p)
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
+    return g
+  }, [layout])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  if (!on) return null
+  return (
+    <lineSegments geometry={geometry} raycast={noRaycast} renderOrder={9}>
+      <lineBasicMaterial color="#2f6fdb" transparent opacity={0.55} />
+    </lineSegments>
   )
 }

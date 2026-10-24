@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Guide } from './ui/Guide'
-import { DetailsCard, PreviewModal } from './ui/Details'
+import { Inspector, PreviewModal } from './ui/Details'
 import { Explorer } from './ui/Explorer'
 import { TopBar } from './ui/TopBar'
 import { World } from './scene/World'
@@ -15,7 +15,7 @@ export function App() {
         <Explorer />
         <div className="world">
           <World />
-          <DetailsCard />
+          {!panel && <Inspector variant="sheet" />}
           <Guide />
           <div className="fictional">Fictional demo computer — no real files</div>
         </div>

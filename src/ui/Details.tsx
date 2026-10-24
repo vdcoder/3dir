@@ -1,52 +1,78 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { FileNode, FsNode } from '../model/types'
 import { fs, useStore } from '../state/store'
 import { NodeIcon } from './Icon'
 import { formatDate, formatSize, typeLabel } from './kinds'
 import { assetUrl } from '../assetUrl'
 
-/** Floating card describing the current selection, with explicit cross-view commands. */
-export function DetailsCard() {
+const OPEN_KEY = '3dir.inspector.open'
+const readOpen = (fallback: boolean) => {
+  try { const v = localStorage.getItem(OPEN_KEY); return v === null ? fallback : v === '1' } catch { return fallback }
+}
+
+/**
+ * Details of the latest selection, docked so it never covers the world: at the
+ * bottom of the explorer pane, or as a collapsible sheet when the pane is hidden.
+ */
+export function Inspector({ variant = 'pane' }: { variant?: 'pane' | 'sheet' }) {
   const id = useStore((s) => s.detailsId)
   const node = id ? fs.get(id) : undefined
-  if (!node) return null
-  return <DetailsBody node={node} />
+  const [open, setOpen] = useState(() => readOpen(variant === 'pane'))
+  const toggle = () => {
+    setOpen((o) => {
+      try { localStorage.setItem(OPEN_KEY, o ? '0' : '1') } catch { /* storage may be unavailable */ }
+      return !o
+    })
+  }
+  if (variant === 'sheet' && !node) return null
+  return (
+    <section className={`inspector inspector-${variant}` + (open ? ' open' : '')} aria-label="Details" data-testid="details">
+      <button className="inspector-head" aria-expanded={open} onClick={toggle} title={open ? 'Hide details' : 'Show details'}>
+        <svg className="chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d="M3 1.5L7 5l-4 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+        <span className="title">Details</span>
+        {!open && node && <span className="peek"><NodeIcon node={node} size={14} /> {node.name}</span>}
+      </button>
+      {open && (node ? <DetailsBody node={node} /> : <div className="inspector-empty">Select a file or folder, here or in the world, to see its details.</div>)}
+    </section>
+  )
 }
 
 function DetailsBody({ node }: { node: FsNode }) {
-  const { showInWorld, showInExplorer, openPreview, closeDetails, explorerOpen, worldEnter } = useStore.getState()
+  const linked = useStore((s) => s.linked)
+  const { showInWorld, showInExplorer, goTo, openPreview, explorerOpen, worldEnter } = useStore.getState()
   const parent = node.parentId ? fs.get(node.parentId) : undefined
   const children = node.type === 'folder' ? fs.children(node.id) : []
   const folders = children.filter((c) => c.type === 'folder').length
 
   return (
-    <section className="details" aria-label="Details" data-testid="details">
+    <div className="inspector-body">
       <div className="details-head">
-        <NodeIcon node={node} size={34} />
+        <NodeIcon node={node} size={30} />
         <div>
           <h2>{node.name}</h2>
           <div className="sub">{typeLabel(node)}</div>
         </div>
-        <button className="iconbtn close" aria-label="Close details" onClick={closeDetails}>
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-        </button>
       </div>
 
       <dl className="meta">
         {node.type === 'file' && (<><dt>Size</dt><dd>{formatSize(node.sizeBytes)}</dd></>)}
         {node.type === 'folder' && (<><dt>Contains</dt><dd>{folders} folders, {children.length - folders} files</dd></>)}
         <dt>Modified</dt><dd>{formatDate(node.modified)}</dd>
-        <dt>Created</dt><dd>{formatDate(node.created)}</dd>
         {parent && (<><dt>In folder</dt><dd>{parent.name}</dd></>)}
       </dl>
       <div className="pathbox" title="Canonical path">{fs.path(node.id)}</div>
 
       <div className="actions">
-        <button className="btn" onClick={() => showInWorld(node.id)}>Show in World</button>
-        <button className="btn" onClick={() => showInExplorer(node.id)}>Show in Explorer</button>
         {node.type === 'file'
           ? <button className="btn primary" onClick={() => openPreview(node.id)}>Open</button>
           : <button className="btn primary" onClick={() => { explorerOpen(node.id); worldEnter(node.id) }}>Open folder</button>}
+        {linked
+          // Linked: both views share one place, so one command shows it in both.
+          ? <button className="btn" onClick={() => goTo(node.id)} title="Go to the folder that holds it, in both views">Show location</button>
+          : (<>
+              <button className="btn" onClick={() => showInWorld(node.id)}>Show in World</button>
+              <button className="btn" onClick={() => showInExplorer(node.id)}>Show in Explorer</button>
+            </>)}
       </div>
 
       {node.type === 'file' && node.preview && (
@@ -55,7 +81,7 @@ function DetailsBody({ node }: { node: FsNode }) {
           <Preview file={node} compact />
         </>
       )}
-    </section>
+    </div>
   )
 }
 

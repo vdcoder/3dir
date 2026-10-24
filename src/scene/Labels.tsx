@@ -4,10 +4,12 @@ import * as THREE from 'three'
 import type { WorldLayout } from '../mapping/types'
 import type { NodeId } from '../model/types'
 import { fs, useStore } from '../state/store'
+import { formatSize, typeLabel } from '../ui/kinds'
+import { activate } from './picking'
 import { pinsFor } from './Pins'
 import { center, isWithin, useLayout } from './worldData'
 
-type Level = 'region' | 'area' | 'pin' | 'building' | 'room' | 'fixture' | 'compartment'
+type Level = 'region' | 'area' | 'pin' | 'building' | 'room' | 'fixture' | 'compartment' | 'file'
 
 interface Candidate {
   key: string
@@ -24,10 +26,12 @@ interface Candidate {
 }
 
 // Minimum on-screen size (px) before a label of this level appears at rest.
-const MIN_PX: Record<Level, number> = { region: 40, area: 30, pin: 0, building: 55, room: 85, fixture: 70, compartment: 60 }
-const BASE_PRIORITY: Record<Level, number> = { pin: 130, area: 110, region: 100, building: 55, room: 35, fixture: 25, compartment: 15 }
+// Files and boxes are named only while revealing (hover and selection have the focus tag).
+const MIN_PX: Record<Level, number> = { region: 40, area: 30, pin: 0, building: 55, room: 85, fixture: 70, compartment: 60, file: Infinity }
+const BASE_PRIORITY: Record<Level, number> = { pin: 130, area: 110, region: 100, building: 55, room: 35, fixture: 25, compartment: 15, file: 5 }
 // With Alt held (reveal mode), everything interactive is named down to this size.
 const REVEAL_PX = 14
+const short = (name: string, n = 24) => (name.length > n ? name.slice(0, n - 1) + '…' : name)
 
 const chainText = (id: NodeId, from = 1) => fs.ancestry(id).slice(from, -1).map((n) => n.name).join(' › ')
 
@@ -89,6 +93,13 @@ function buildCandidates(layout: WorldLayout): Candidate[] {
       priority: BASE_PRIORITY.compartment + imp(c.nodeId) * 25,
     })
   }
+  for (const it of layout.items) {
+    out.push({
+      key: 'i:' + it.nodeId, nodeId: it.nodeId, level: 'file', text: short(fs.get(it.nodeId)!.name),
+      pos: new THREE.Vector3(it.pos[0], it.pos[1] + it.size[1] / 2 + 0.04, it.pos[2]), extent: Math.max(it.size[0], it.size[1], it.size[2]) * 4,
+      priority: BASE_PRIORITY.file + imp(it.nodeId) * 10,
+    })
+  }
   for (const p of pinsFor(layout)) {
     out.push({
       key: 'pin:' + p.nodeId, nodeId: p.nodeId, level: 'pin', text: '★ ' + p.title, sub: fs.ancestry(p.nodeId).map((n) => n.name).slice(-3, -1).join(' › '),
@@ -99,6 +110,18 @@ function buildCandidates(layout: WorldLayout): Candidate[] {
 }
 
 interface Placed { x: number; y: number; w: number; h: number }
+
+const HUD = '.world-hud .world-crumbs, .world-hud .world-buttons, .world-hud .box-chip, .guide, .fictional, .guide-reopen'
+function hudObstacles(canvas: HTMLElement): Placed[] {
+  const stage = canvas.closest('.world') ?? canvas
+  const origin = canvas.getBoundingClientRect()
+  const out: Placed[] = []
+  stage.querySelectorAll(HUD).forEach((el) => {
+    const r = el.getBoundingClientRect()
+    if (r.width && r.height) out.push({ x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height })
+  })
+  return out
+}
 const overlaps = (a: Placed, b: Placed) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
 /** Per-world label state shared by the DOM layer and the in-canvas updater. */
@@ -109,11 +132,10 @@ export interface LabelBus {
   sizes: Map<string, [number, number]>
   itemTag: HTMLDivElement | null
   offscreen: HTMLButtonElement | null
-  itemById: Map<NodeId, WorldLayout['items'][number]>
 }
 
 export function makeLabelBus(layout: WorldLayout): LabelBus {
-  return { layout, candidates: buildCandidates(layout), refs: new Map(), sizes: new Map(), itemTag: null, offscreen: null, itemById: new Map(layout.items.map((i) => [i.nodeId, i])) }
+  return { layout, candidates: buildCandidates(layout), refs: new Map(), sizes: new Map(), itemTag: null, offscreen: null }
 }
 
 export const LabelBusContext = createContext<LabelBus | null>(null)
@@ -135,8 +157,8 @@ export function LabelLayer({ bus }: { bus: LabelBus }) {
             if (c.level === 'pin') useStore.getState().worldEnter(c.nodeId)
             else useStore.getState().worldSelect(c.nodeId)
           }}
-          title={c.level === 'pin' ? `Go to ${fs.path(c.nodeId)}` : `${fs.path(c.nodeId)}\nDouble-click to go inside`}
-          onDoubleClick={(e) => { e.stopPropagation(); if (fs.get(c.nodeId)?.type === 'folder') useStore.getState().worldEnter(c.nodeId) }}
+          title={c.level === 'pin' ? `Go to ${fs.path(c.nodeId)}` : fs.path(c.nodeId)}
+          onDoubleClick={(e) => { e.stopPropagation(); activate(c.nodeId) }}
           onPointerEnter={() => useStore.getState().setHover(c.nodeId)}
           onPointerLeave={() => useStore.getState().hoverId === c.nodeId && useStore.getState().setHover(null)}
         >
@@ -144,7 +166,7 @@ export function LabelLayer({ bus }: { bus: LabelBus }) {
           {c.sub && <span className="s">{c.sub}</span>}
         </div>
       ))}
-      <div ref={(el) => { bus.itemTag = el }} className="wl wl-item" style={{ display: 'none' }} />
+      <div ref={(el) => { bus.itemTag = el }} className="wl wl-item wl-focus" style={{ display: 'none' }} />
       <button
         ref={(el) => { bus.offscreen = el }}
         className="offscreen"
@@ -174,13 +196,15 @@ export function LabelUpdater() {
   // Text widths change once the web font arrives: measure again.
   useEffect(() => { void document.fonts.ready.then(() => { bus.sizes.clear(); invalidate() }) }, [bus, invalidate])
 
+  const gl = useThree((s) => s.gl)
   useFrame(({ camera, size }) => {
     const { world, hoverId, revealMode } = useStore.getState()
     const here = world.location
     const selectedId = world.selectedId
     const cam = camera as THREE.PerspectiveCamera
     const focal = size.height / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2))
-    const placed: Placed[] = []
+    // World-corner controls are obstacles: labels never slide under them.
+    const placed: Placed[] = hudObstacles(gl.domElement)
     const visible: { c: Candidate; x: number; y: number; score: number }[] = []
     for (const c of bus.candidates) {
       const el = bus.refs.get(c.key)
@@ -189,7 +213,7 @@ export function LabelUpdater() {
       const dist = cam.position.distanceTo(c.pos)
       const px = (c.extent / dist) * focal
       const inHere = ancestors.get(c.key)!.has(here)
-      const special = c.nodeId === selectedId || c.nodeId === hoverId
+      const special = c.level !== 'file' && (c.nodeId === selectedId || c.nodeId === hoverId)
       const imp = layout.importance.get(c.nodeId) ?? 0.5
       let threshold = MIN_PX[c.level] * (imp >= 0.9 ? 0.45 : imp >= 0.8 ? 0.7 : 1)
       if (inHere) threshold *= 0.6
@@ -201,6 +225,7 @@ export function LabelUpdater() {
       visible.push({ c, x, y, score: c.priority + (special ? 1000 : 0) + (inHere ? 20 : 0) })
     }
     visible.sort((a, b) => b.score - a.score)
+    const placedBy = new Map<NodeId, Placed>()
     for (const { c, x: ax, y, score } of visible) {
       const el = bus.refs.get(c.key)!
       el.style.display = 'block'
@@ -213,6 +238,8 @@ export function LabelUpdater() {
       // Important labels may shift a little to dodge others before giving up: [dx, lift].
       const tries: [number, number][] = c.level === 'region' || c.level === 'area'
         ? [[0, 0], [0, -h - 6], [0, h * 0.6], [0, h + 8], [0, -2 * h - 12]]
+        : c.level === 'file'
+          ? [[0, 0], [0, -h - 4], [0, -2 * h - 8], [w * 0.55, -h * 0.5], [-w * 0.55, -h * 0.5]]
         : c.level === 'pin'
           ? [[0, 0], [w * 0.55, 0], [-w * 0.55, 0], [0, h * 0.6], [w * 0.55, h * 0.6], [-w * 0.55, h * 0.6], [w * 0.55, -h * 0.8], [-w * 0.55, -h * 0.8], [0, h + 8]]
           : [[0, 0]]
@@ -220,44 +247,78 @@ export function LabelUpdater() {
       let shift = 0
       for (const [dx, t] of tries) {
         const r = { x: x + dx - w / 2 - 3, y: y - t - h - 3, w: w + 6, h: h + 6 }
-        if (score >= 1000 || revealMode || !placed.some((p) => overlaps(p, r))) { placed.push(r); lift = t; shift = dx; break }
+        // Revealing names every place regardless of overlap, but files still take turns.
+        if (score >= 1000 || (revealMode && c.level !== 'file') || !placed.some((p) => overlaps(p, r))) { placed.push(r); lift = t; shift = dx; break }
       }
       if (Number.isNaN(lift)) { el.style.display = 'none'; continue }
       el.style.transform = `translate(${Math.round(x + shift - w / 2)}px, ${Math.round(y - h - lift)}px)`
+      placedBy.set(c.nodeId, { x: x + shift - w / 2, y: y - h - lift, w, h })
       el.style.setProperty('--lift', `${shift ? 0 : Math.max(0, Math.round(lift))}px`)
       el.classList.toggle('selected', c.nodeId === selectedId)
       el.classList.toggle('hovered', c.nodeId === hoverId)
       el.classList.toggle('revealed', revealMode)
     }
     updateOffscreen(bus, cam, size, selectedId, v)
-    updateItemTag(bus, cam, size, selectedId, hoverId, v)
+    updateFocusTag(bus, cam, size, here, selectedId, hoverId, placedBy, v)
   })
   return null
 }
 
-/** Name tag over the hovered or selected file, or over the closed box something selected is in. */
-function updateItemTag(bus: LabelBus, cam: THREE.Camera, size: { width: number; height: number }, selectedId: NodeId | null, hoverId: NodeId | null, v: THREE.Vector3) {
+/** What a focused thing is and what double-click does with it. */
+function focusText(layout: WorldLayout, id: NodeId, here: NodeId): { name: string; info: string } | null {
+  const n = fs.get(id)
+  const a = layout.anchors.get(id)
+  if (!n || !a || a.level === 'land') return null
+  if (a.shownAs !== id) {
+    const box = fs.get(a.shownAs)!
+    return { name: n.name, info: `Inside the “${box.name}” box · double-click the box to open it` }
+  }
+  if (n.type === 'file') return { name: n.name, info: `${typeLabel(n)} · ${formatSize(n.sizeBytes)} · double-click to open` }
+  const count = fs.children(id).length
+  const contents = count ? `${count} item${count === 1 ? '' : 's'}` : 'Empty'
+  if (id === here) return { name: n.name, info: `${contents} · you are here` }
+  if (a.level === 'box') return { name: n.name, info: `Closed box · ${contents} · double-click to open it` }
+  return { name: n.name, info: `Folder · ${contents} · double-click to go inside` }
+}
+
+/**
+ * Focus tag for the hovered thing (or else the selection): under its label when
+ * it has one, otherwise over the object itself with its name.
+ */
+function updateFocusTag(bus: LabelBus, cam: THREE.Camera, size: { width: number; height: number }, here: NodeId, selectedId: NodeId | null, hoverId: NodeId | null, placedBy: Map<NodeId, Placed>, v: THREE.Vector3) {
   const tag = bus.itemTag
   if (!tag) return
-  const { layout, itemById } = bus
-  const itemId = [hoverId, selectedId].find((id) => id && (itemById.has(id) || (layout.anchors.get(id)?.shownAs !== id && itemById.has(layout.anchors.get(id)?.shownAs ?? ''))))
-  const shownAs = itemId ? layout.anchors.get(itemId)?.shownAs : undefined
-  const item = itemId ? itemById.get(itemId) ?? (shownAs ? itemById.get(shownAs) : undefined) : undefined
-  if (!item || !itemId) { tag.style.display = 'none'; return }
-  v.set(item.pos[0], item.pos[1] + item.size[1] / 2 + 0.05, item.pos[2]).project(cam)
-  if (v.z > 1) { tag.style.display = 'none'; return }
+  const { layout } = bus
+  const focusId = [hoverId, selectedId].find((id) => id && layout.anchors.has(id) && layout.anchors.get(id)!.level !== 'land')
+  const text = focusId ? focusText(layout, focusId, here) : null
+  if (!focusId || !text) { tag.style.display = 'none'; return }
+  const label = placedBy.get(focusId)
+  const key = `${focusId}|${text.info}|${label ? 1 : 0}`
+  if (tag.dataset.key !== key) {
+    tag.dataset.key = key
+    tag.innerHTML = ''
+    if (!label) {
+      const t = document.createElement('span')
+      t.className = 't'
+      t.textContent = text.name
+      tag.append(t)
+    }
+    const s = document.createElement('span')
+    s.className = 's'
+    s.textContent = text.info
+    tag.append(s)
+    tag.classList.toggle('under-label', !!label)
+  }
+  tag.classList.toggle('selected', focusId === selectedId)
   tag.style.display = 'block'
-  const n = fs.get(item.nodeId)!
-  const action = n.type === 'folder' ? 'Double-click to open the box' : 'Double-click to open'
-  tag.innerHTML = ''
-  const t = document.createElement('span')
-  t.className = 't'
-  t.textContent = item.nodeId === itemId ? n.name : `${fs.get(itemId)!.name} — inside the “${n.name}” box`
-  const s = document.createElement('span')
-  s.className = 's'
-  s.textContent = action
-  tag.append(t, s)
-  tag.classList.toggle('selected', itemId === selectedId)
+  if (label) {
+    tag.style.transform = `translate(${Math.round(label.x + label.w / 2 - tag.offsetWidth / 2)}px, ${Math.round(label.y + label.h + 3)}px)`
+    return
+  }
+  const a = layout.anchors.get(focusId)!
+  const b = (layout.anchors.get(a.shownAs) ?? a).bounds
+  v.set((b.min[0] + b.max[0]) / 2, b.max[1] + 0.05, (b.min[2] + b.max[2]) / 2).project(cam)
+  if (v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) { tag.style.display = 'none'; return }
   const x = (v.x * 0.5 + 0.5) * size.width
   const y = (-v.y * 0.5 + 0.5) * size.height
   tag.style.transform = `translate(${Math.round(x - tag.offsetWidth / 2)}px, ${Math.round(y - tag.offsetHeight - 6)}px)`
