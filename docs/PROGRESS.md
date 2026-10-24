@@ -2,59 +2,60 @@
 
 Authoritative product spec: [`docs/PROTOTYPE_CHARTER.md`](PROTOTYPE_CHARTER.md). This file only tracks status.
 
+Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`).
+
 ## Current status (2026-10-24)
 
-**Milestone 0: asset pipeline proof — done.**
-Claude Code → Meshy API → textured GLB → optimized GLB → rendered in React Three Fiber in headless Chromium.
+### Completed
+- **Asset pipeline** (Meshy → GLB → optimized → browser). See `docs/ASSETS.md`.
+- **GitHub Pages deployment**: every push to `main` is type-checked, tested, built and published to `gh-pages`.
+- **Synthetic computer**: 260 folders, 843 files (`src/data/seed/`). Windows, Program Files, four users,
+  Amanda's personal folders and the "OneDrive - Alder & Finch" business archive, with consistent numbers and
+  previews (77 text, 18 table, 111 image descriptions).
+- **2D explorer**: folder tree with Quick access, file list (keyboard: arrows, Enter, Backspace), back/forward/up,
+  address bar, search (names + preview content), details card with canonical path, preview and Open.
+- **Spatial explorer (first version)**: deterministic layout engine (`src/mapping/layout.ts`):
+  land → districts → open-roof buildings → rooms → shelves/tables/display walls → files as colored spines.
+  Promoted districts: the OneDrive business archive, Projects + Documents, and Pictures appear on the C:\ map
+  with their real paths on their signs, and signposts outside Amanda's house point to them.
+  Walls facing the camera drop to a sill (dollhouse cutaway). Labels are ranked by importance, focus and
+  selection, with collision avoidance.
+- **Synchronization** exactly as approved: linked selection without camera moves, linked open/enter, world
+  selection reveals the item in the explorer, Show in World / Show in Explorer always work, Linked toggle.
 
-**Foundation groundwork — started.** Root Vite + React + TypeScript + React Three Fiber app,
-canonical data model (`src/model`), mapping types (`src/mapping`), unit tests and a browser smoke test.
-The app itself is still a placeholder (a grey box), on purpose.
+### Tested
+- Unit: filesystem index, navigation rules (linked on/off), layout invariants (every node anchored, no overlaps,
+  deterministic, promotion), dataset consistency. `npm test`.
+- Browser: `npm run test:e2e` (smoke, also for the `/3dir/` base path) and `npm run test:interactions`
+  (17 checks of tree/list/world/search/linked behavior through real clicks).
 
-### Waiting on the project owner
+### Broken / unfinished
+- Visual quality is first-pass: plain materials, no generated props placed yet, flat lighting.
+  Screenshots: `docs/progress/2026-10-24-first-world/`.
+- No off-screen indicator yet for a selection outside the view.
+- Studio and gallery use the generic look (no photos, no themed furniture yet).
 
-These are deliberately not decided yet:
-
-1. Demo audience and flagship district.
-2. Deployment (local only vs. GitHub Pages).
-3. Git workflow (direct to `main` vs. branch + PR per milestone).
-4. Linked navigation behavior when opening a folder in 2D.
-5. Remaining budget after subscriptions.
-
-## Asset pipeline proof
-
-- Auth: works through the proxy-injected header; the key never appears in the session.
-- Credits: 3,320 → 3,290. **30 used** (preview 20 + 2K texture 10), matching Meshy's published pricing.
-- Model: one mesh, ~20k triangles, base color + normal + metallic/roughness maps, 1.9 × 1.2 × 1.6 units.
-- Size: raw 9.9 MB → **1.5 MB** after `gltf-transform optimize` (WebP textures, meshopt), no visible loss.
-- Browser: no console errors; screenshots in `docs/progress/meshy-pipeline/`.
-- Time: ~40 s for the mesh, ~40 s for the texture.
-
-Visual notes: clean, readable shape and convincing book-filled windows. Weaknesses: slight texture
-seams on the walls, a noisy roof texture and a small artifact on one roof corner. Prompt-generated
-buildings are closed boxes; the charter's cutaway/open-roof interiors will probably need
-procedural rooms with generated furniture placed inside, rather than generated cutaway buildings.
-
-## Outstanding defects / concerns
-
-- Asset files are committed to git directly. If we generate many, consider Git LFS.
+### Next
+1. Flagship art pass: business district materials, building identity, plaza, Meshy props, lighting, AO.
+2. Studio and gallery identities; generated photos for the gallery.
+3. Off-screen selection indicator, demo polish, docs.
 
 ## Repeatable test steps
 
 ```
 npm install
 npm run typecheck
-npm test            # unit tests
+npm test                    # unit tests
 npm run build
-npm run test:e2e    # headless Chromium smoke test (uses the preinstalled Playwright)
+npm run test:e2e            # smoke test in headless Chromium
+npm run test:interactions   # explorer/world synchronization checks
+npm run shots -- <outDir> [overview business finance budgets budget-file contracts studio gallery users system]
 ```
-
-Asset pipeline viewer: `cd experiments/meshy-pipeline && npm install && npm run build && npx vite preview --port 4173`,
-then `node check.cjs http://localhost:4173/ <screenshot dir>`.
 
 ## Budget
 
 | Item | Cost | Approved |
 | --- | --- | --- |
 | Meshy Premium, first month | $20 | Yes (purchased by owner) |
-| Meshy credits used so far | 30 of 3,320 | Yes (≤ 30 cap for the pipeline test) |
+| Meshy credits, pipeline test | 30 | Yes |
+| Meshy credits, stage 2 (cap 900) | 282 used so far (see `docs/ASSETS.md`) | Yes |

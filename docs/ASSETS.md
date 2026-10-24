@@ -22,8 +22,36 @@ images (so there's no third-party source material); every asset is logged below 
 | Pipeline test | 30 | Yes |
 | Prototype development (stage 2) | up to 900 more (no new purchases) | Yes, 2026-10-24 |
 
+## How assets are made
+
+1. **Concept image** (`npm run meshy -- concept`, 3 credits): text-to-image with one shared style prompt
+   (stylized miniature architectural model, matte materials, warm palette), so every asset matches.
+   Concepts are reviewed as a contact sheet before any 3D spend.
+2. **3D model** (`npm run meshy -- model`): image-to-3D from the approved concept. Props use the
+   smart-topology model (meshy-t2.5, 15 credits, 3k-14k triangles); landmarks use meshy-7.1 (30 credits).
+3. **Optimization**: `gltf-transform optimize` with meshopt geometry and WebP textures
+   (512 px for props, 1024 px for landmarks). Typical prop: 80-180 KB.
+
+Concept images live in `assets-src/meshy/concepts/`. Raw downloads are kept in `assets-src/meshy/*.raw.glb`.
+
 ## Assets
 
-| Asset | Provider / model | Credits | Status |
-| --- | --- | --- | --- |
-| `library-pavilion.glb` | Meshy, meshy-7.1 | 30 (20 mesh + 10 texture) | Pipeline test only, not a chosen art direction |
+| Asset | Made from | Tier / model | Credits | Used for |
+| --- | --- | --- | --- | --- |
+| `library-pavilion.glb` | text prompt | text-to-3D / meshy-7.1 | 30 | Pipeline test only |
+| `tree-round.glb` | concept `tree-round` (image-to-3D) | prop / meshy-t2.5 | 15 | Trees across the map |
+| `bench.glb` | concept `bench` (image-to-3D) | prop / meshy-t2.5 | 15 | Plazas and gallery |
+| `fountain.glb` | concept `fountain` (image-to-3D) | prop / meshy-t2.5 | 15 | Business plaza landmark |
+| `tree-cypress.glb` | concept `tree-cypress` (image-to-3D) | prop / meshy-t2.5 | 15 | Avenues, variety |
+| `van.glb` | concept `van` (image-to-3D) | prop / meshy-t2.5 | 15 | Operations (Logistics) |
+| `planter.glb` | concept `planter` (image-to-3D) | prop / meshy-t2.5 | 15 | Plazas, building fronts |
+| `lamp-post.glb` | concept `lamp-post` (image-to-3D) | prop / meshy-t2.5 | 15 | Streets and plazas |
+| `table-boardroom.glb` | concept `table-boardroom` (image-to-3D) | prop / meshy-t2.5 | 15 | Board room |
+| `desk-office.glb` | concept `desk-office` (image-to-3D) | prop / meshy-t2.5 | 15 | Business rooms |
+| `easel-board.glb` | concept `easel-board` (image-to-3D) | prop / meshy-t2.5 | 15 | Strategy / Board |
+| `plant-pot.glb` | concept `plant-pot` (image-to-3D) | prop / meshy-t2.5 | 15 | Interiors |
+| `forklift.glb` | concept `forklift` (image-to-3D) | prop / meshy-t2.5 | 15 | Operations (Inventory) |
+| `vault.glb` | concept `vault` (image-to-3D) | prop / meshy-t2.5 | 15 | Contracts archive |
+| `clock-tower.glb` | concept `clock-tower` (image-to-3D) | hero / meshy-7.1 | 30 | Business district landmark |
+
+Concepts generated so far (19 × 3 credits): bench, clock-tower, desk-office, drafting-table, easel-board, forklift, fountain, lamp-post, mailbox, plant-pot, planter, sculpture-rings, server-cabinet, table-boardroom, tree-cypress, tree-round, van, vault, workbench.
