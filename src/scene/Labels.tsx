@@ -4,8 +4,9 @@ import * as THREE from 'three'
 import type { NodeId } from '../model/types'
 import { fs, useStore } from '../state/store'
 import { center, layout } from './worldData'
+import { pins } from './Pins'
 
-type Level = 'district' | 'building' | 'room' | 'fixture' | 'compartment' | 'portal' | 'item'
+type Level = 'district' | 'pin' | 'building' | 'room' | 'fixture' | 'compartment' | 'portal' | 'item'
 
 interface Candidate {
   key: string
@@ -22,8 +23,8 @@ interface Candidate {
 }
 
 // Minimum on-screen size (px) before a label of this level appears.
-const MIN_PX: Record<Level, number> = { district: 0, building: 55, room: 85, fixture: 70, compartment: 60, portal: 40, item: 45 }
-const BASE_PRIORITY: Record<Level, number> = { district: 100, portal: 60, building: 55, room: 35, fixture: 25, compartment: 15, item: 5 }
+const MIN_PX: Record<Level, number> = { district: 0, pin: 0, building: 55, room: 85, fixture: 70, compartment: 60, portal: 40, item: 45 }
+const BASE_PRIORITY: Record<Level, number> = { district: 100, pin: 130, portal: 60, building: 55, room: 35, fixture: 25, compartment: 15, item: 5 }
 
 function buildCandidates(): Candidate[] {
   const out: Candidate[] = []
@@ -72,6 +73,14 @@ function buildCandidates(): Candidate[] {
     out.push({
       key: 'p:' + p.nodeId, nodeId: p.nodeId, level: 'portal', text: '→ ' + fs.get(p.nodeId)!.name,
       pos: new THREE.Vector3(p.pos[0], 2.2, p.pos[2]), extent: 2.5, priority: BASE_PRIORITY.portal,
+    })
+  }
+  for (const p of pins) {
+    const chain = fs.ancestry(p.nodeId).map((n) => n.name)
+    out.push({
+      key: 'pin:' + p.nodeId, nodeId: p.nodeId, level: 'pin', text: '★ ' + p.title,
+      sub: chain.slice(-3, -1).join(' › '),
+      pos: new THREE.Vector3(p.x, p.top + 0.15, p.z), extent: 10, priority: BASE_PRIORITY.pin,
     })
   }
   for (const c of out) if (c.nodeId) c.ancestors = new Set(fs.ancestry(c.nodeId).map((n) => n.id))
@@ -154,10 +163,16 @@ export function LabelUpdater() {
       let wh = sizes.get(c.key)
       if (!wh) { wh = [el.offsetWidth, el.offsetHeight]; sizes.set(c.key, wh) }
       const [w, h] = wh
-      const rect = { x: x - w / 2 - 3, y: y - h - 3, w: w + 6, h: h + 6 }
-      if (score < 1000 && placed.some((p) => overlaps(p, rect))) { el.style.display = 'none'; continue }
-      placed.push(rect)
-      el.style.transform = `translate(${Math.round(x - w / 2)}px, ${Math.round(y - h)}px)`
+      // Important labels may move up a little to dodge others before giving up.
+      const tries = c.level === 'district' ? [0, -h - 6, h * 0.6, h + 8, -2 * h - 12] : c.level === 'pin' ? [0, h * 0.6, h + 8, 2 * h + 16] : [0]
+      let lift = NaN
+      for (const t of tries) {
+        const r = { x: x - w / 2 - 3, y: y - t - h - 3, w: w + 6, h: h + 6 }
+        if (score >= 1000 || !placed.some((p) => overlaps(p, r))) { placed.push(r); lift = t; break }
+      }
+      if (Number.isNaN(lift)) { el.style.display = 'none'; continue }
+      el.style.transform = `translate(${Math.round(x - w / 2)}px, ${Math.round(y - h - lift)}px)`
+      el.style.setProperty('--lift', `${Math.max(0, Math.round(lift))}px`)
       el.classList.toggle('selected', c.nodeId !== null && c.nodeId === selectedId)
       el.classList.toggle('hovered', c.nodeId !== null && c.nodeId === hoverId)
     }

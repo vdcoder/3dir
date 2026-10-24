@@ -8,9 +8,10 @@ import { Boxes, type BoxSpec } from './Boxes'
 import { layout, PALETTE } from './worldData'
 import { usePick } from './usePick'
 
-const SHELF_BASE = 0.12
-const SHELF_LEVEL = 0.5
-const SIDE = 0.04
+const SHELF_BASE = 0.14
+const SHELF_LEVEL = 0.64
+const SIDE = 0.05
+const SHELF_BACK: Record<ThemeId, string> = { business: '#ece3d3', studio: '#f1e6d4', gallery: '#ffffff', home: '#efe4d2', system: '#dfe2e4' }
 
 interface Parts { specs: BoxSpec[]; ids: NodeId[] }
 
@@ -20,6 +21,7 @@ export function Fixtures() {
   const groups = useMemo(() => {
     const wood = new Map<ThemeId, Parts>()
     const dark = new Map<ThemeId, Parts>()
+    const back = new Map<ThemeId, Parts>()
     const add = (m: Map<ThemeId, Parts>, t: ThemeId, s: BoxSpec, id: NodeId) => {
       const e = m.get(t) ?? { specs: [], ids: [] }
       e.specs.push(s)
@@ -32,7 +34,7 @@ export function Fixtures() {
       const id = f.nodeId
       if (f.type === 'shelf') {
         add(dark, f.theme, { pos: [x, SHELF_BASE / 2, z], size: [W, SHELF_BASE, D] }, id)
-        add(wood, f.theme, { pos: [x, H / 2, z - D / 2 + 0.015], size: [W, H, 0.03] }, id)
+        add(back, f.theme, { pos: [x, H / 2, z - D / 2 + 0.015], size: [W - 0.02, H - 0.02, 0.03] }, id)
         const innerW = W - 2 * SIDE
         const bayW = (innerW - (f.bays - 1) * SIDE) / f.bays
         for (let b = 0; b <= f.bays; b++) {
@@ -53,13 +55,16 @@ export function Fixtures() {
         add(dark, f.theme, { pos: [x, H / 2 + 0.06, z], size: [W, H, D] }, id)
       }
     }
-    return { wood, dark }
+    return { wood, dark, back }
   }, [])
 
   return (
     <group>
       {[...groups.wood].map(([t, p]) => (
         <Boxes key={'w' + t} boxes={p.specs} color={PALETTE[t].wood} roughness={0.75} onPick={(i, _e, k) => pick(p.ids[i], k)} />
+      ))}
+      {[...groups.back].map(([t, p]) => (
+        <Boxes key={'b' + t} boxes={p.specs} color={SHELF_BACK[t]} roughness={0.9} onPick={(i, _e, k) => pick(p.ids[i], k)} />
       ))}
       {[...groups.dark].map(([t, p]) => (
         <Boxes key={'d' + t} boxes={p.specs} color={t === 'gallery' ? '#f4f1ec' : PALETTE[t].woodDark} roughness={0.8} onPick={(i, _e, k) => pick(p.ids[i], k)} />

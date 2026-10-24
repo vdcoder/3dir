@@ -104,3 +104,25 @@ export const IMPORTANCE: Record<string, number> = {
   'C:\\Program Files (x86)': 0.1,
   'C:\\ProgramData': 0.1,
 }
+
+/**
+ * Extra floor area (width, depth) reserved at the front of a room for furniture.
+ * `*:<theme>` applies to every room of that theme; paths override it.
+ */
+export const ROOM_RESERVE: Record<string, [number, number]> = {
+  '*:business': [2.4, 2.0],
+  '*:studio': [2.2, 1.6],
+  [`${ONEDRIVE}\\Board\\2026 Meetings`]: [5.2, 3.4],
+}
+
+/**
+ * Important destinations pinned on the map at every zoom level, wherever they
+ * are nested. Each pin rises from the exact shelf or wall that holds them.
+ */
+export const PINS: { path: string; title: string }[] = [
+  { path: `${ONEDRIVE}\\Finance\\Budgets\\FY2027`, title: 'FY2027 Budget' },
+  { path: `${ONEDRIVE}\\Finance\\Reports\\Quarterly\\2026 Q3`, title: 'Q3 2026 Reports' },
+  { path: `${ONEDRIVE}\\Contracts\\Clients\\Oakridge Hotels`, title: 'Oakridge Hotels' },
+  { path: `${AMANDA}\\Pictures\\Travel\\2026 Kyoto`, title: 'Kyoto 2026' },
+  { path: `${AMANDA}\\Projects\\Garden Planner App`, title: 'Garden Planner App' },
+]

@@ -7,22 +7,28 @@ import { CameraRig } from './CameraRig'
 import { Fixtures, Items } from './Furniture'
 import { Highlight } from './Highlight'
 import { LabelLayer, LabelUpdater } from './Labels'
+import { Props } from './Props'
+import { Pins } from './Pins'
+import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing'
 import { layout } from './worldData'
+import { initShadows, refreshShadows } from './shadows'
 
 function Lights() {
   const l = layout.land
   const half = Math.max(l.w, l.d) * 0.6
   return (
     <>
-      <hemisphereLight args={['#fffaf0', '#b8b09e', 1.1]} />
+      <hemisphereLight args={['#fdf8ef', '#a99f8c', 1.25]} />
       <directionalLight
-        position={[-l.w * 0.25, 90, l.d * 0.45]}
-        intensity={2.3}
-        color="#fff4e3"
+        position={[-l.w * 0.32, 70, l.d * 0.5]}
+        intensity={2.6}
+        color="#ffefd8"
         castShadow
         shadow-mapSize={[4096, 4096]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.04}
+        shadow-bias={-0.0003}
+        shadow-normalBias={0.03}
+        shadow-radius={5}
+        shadow-blurSamples={12}
         shadow-camera-left={-half}
         shadow-camera-right={half}
         shadow-camera-top={half}
@@ -38,12 +44,16 @@ function Lights() {
 /** Signals automated tests that the first frame with the full world has rendered. */
 function ReadySignal() {
   const gl = useThree((s) => s.gl)
+  const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
+    initShadows(gl, invalidate)
+    // Late-loading models (props) cast shadows too: refresh a few times as they arrive.
+    const timers = [500, 1500, 3000, 6000].map((t) => setTimeout(refreshShadows, t))
     const id = requestAnimationFrame(() => requestAnimationFrame(() => {
       ;(window as unknown as { __appReady: boolean }).__appReady = true
     }))
-    return () => cancelAnimationFrame(id)
-  }, [gl])
+    return () => { cancelAnimationFrame(id); timers.forEach(clearTimeout) }
+  }, [gl, invalidate])
   return null
 }
 
@@ -51,24 +61,28 @@ export function World() {
   return (
     <>
       <Canvas
-        shadows={{ type: THREE.PCFSoftShadowMap }}
+        shadows={{ type: THREE.VSMShadowMap }}
         dpr={[1, 2]}
         frameloop="demand"
         camera={{ fov: 30, near: 0.5, far: 3000, position: [0, 150, 200] }}
-        gl={{ antialias: true, preserveDrawingBuffer: true }}
+        gl={{ antialias: false, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         onPointerMissed={() => useStore.getState().worldSelect(null)}
       >
-        <color attach="background" args={['#e9ebe8']} />
-        <fog attach="fog" args={['#e9ebe8', 380, 900]} />
         <Lights />
         <Land />
         <Buildings />
         <Fixtures />
         <Items />
+        <Props />
+        <Pins />
         <Highlight />
         <CameraRig />
         <LabelUpdater />
         <ReadySignal />
+        <EffectComposer multisampling={0} enableNormalPass={false}>
+          <N8AO aoRadius={1.6} distanceFalloff={0.6} intensity={2.2} aoSamples={12} denoiseSamples={6} halfRes color="#3a2f22" />
+          <SMAA />
+        </EffectComposer>
       </Canvas>
       <LabelLayer />
       <WorldHud />

@@ -9,7 +9,7 @@
 
 import type { FsIndex } from '../model/fs'
 import type { FileKind, FileNode, FsNode, NodeId } from '../model/types'
-import { DISTRICTS, IMPORTANCE, type DistrictPlan, type ThemeId } from './plan'
+import { DISTRICTS, IMPORTANCE, ROOM_RESERVE, type DistrictPlan, type ThemeId } from './plan'
 
 export type Vec3 = [number, number, number]
 export interface AABB { min: Vec3; max: Vec3 }
@@ -125,8 +125,8 @@ export interface WorldLayout {
 
 // ---------- Dimensions (world units ≈ metres in the miniature) ----------
 
-const SHELF = { levelH: 0.5, base: 0.12, depth: 0.45, bayW: 1.0, side: 0.04, maxLevels: 4 }
-const TABLE = { h: 0.76, cell: [0.3, 0.38] as const, pad: 0.18, maxCols: 6 }
+const SHELF = { levelH: 0.64, base: 0.14, depth: 0.56, bayW: 1.3, side: 0.05, maxLevels: 4 }
+const TABLE = { h: 0.8, cell: [0.38, 0.48] as const, pad: 0.2, maxCols: 6 }
 const WALL_PANEL = { frame: [0.5, 0.38] as const, gap: 0.12, h: 2.4, maxRows: 3 }
 const ROOM = { aisle: 1.15, margin: 0.55, wall: 0.18, partitionH: 1.05, min: 3.6, maxInnerW: 13 }
 const BUILDING = { wall: 0.25, maxW: 34 }
@@ -149,11 +149,11 @@ const rand = (key: string) => (hash(key) % 10_000) / 10_000
 
 function spineSize(f: FileNode): Vec3 {
   const r = rand(f.id)
-  const thick = 0.04 + Math.min(0.05, Math.log10(Math.max(f.sizeBytes, 1000)) * 0.006) + r * 0.012
-  const tall: Partial<Record<FileKind, number>> = { spreadsheet: 0.4, pdf: 0.36, document: 0.38, presentation: 0.34, text: 0.28, code: 0.3, design: 0.4, archive: 0.3, image: 0.32 }
-  return [thick, (tall[f.kind] ?? 0.3) - r * 0.04, 0.32]
+  const thick = 0.052 + Math.min(0.065, Math.log10(Math.max(f.sizeBytes, 1000)) * 0.0078) + r * 0.016
+  const tall: Partial<Record<FileKind, number>> = { spreadsheet: 0.52, pdf: 0.47, document: 0.5, presentation: 0.44, text: 0.37, code: 0.4, design: 0.52, archive: 0.4, image: 0.42 }
+  return [thick, (tall[f.kind] ?? 0.4) - r * 0.05, 0.42]
 }
-const BOX_SIZE: Vec3 = [0.3, 0.27, 0.36]
+const BOX_SIZE: Vec3 = [0.39, 0.35, 0.46]
 
 // ---------- Fixtures ----------
 
@@ -173,7 +173,7 @@ function fixtureSlots(fs: FsIndex, folderId: NodeId): Slot[] {
     for (const deep of inner.filter((k) => k.type === 'folder')) {
       slots.push({ nodeId: deep.id, kind: 'folder', form: 'box', size: BOX_SIZE, compartment: sub.id })
     }
-    if (inner.length === 0) slots.push({ nodeId: sub.id, kind: 'folder', form: 'box', size: [0.2, 0.18, 0.3], compartment: sub.id })
+    if (inner.length === 0) slots.push({ nodeId: sub.id, kind: 'folder', form: 'box', size: [0.26, 0.24, 0.4], compartment: sub.id })
   }
   return slots
 }
@@ -239,7 +239,7 @@ function buildTable(nodeId: NodeId, files: FileNode[], theme: ThemeId): BuiltFix
     const r = Math.floor(i / cols)
     const h = 0.015 + rand(f.id) * 0.03
     const pos: Vec3 = [-W / 2 + TABLE.pad + (c + 0.5) * TABLE.cell[0], TABLE.h + h / 2, -D / 2 + TABLE.pad + (r + 0.5) * TABLE.cell[1]]
-    return { nodeId: f.id, kind: f.kind, form: 'paper' as ItemForm, pos, size: [0.22, h, 0.29] as Vec3, fixtureId: nodeId }
+    return { nodeId: f.id, kind: f.kind, form: 'paper' as ItemForm, pos, size: [0.29, h, 0.38] as Vec3, fixtureId: nodeId }
   })
   return { fixture, items, compartments: [] }
 }
@@ -292,6 +292,7 @@ interface BuiltRoom { room: Omit<RoomEntity, 'rect' | 'buildingId'>; w: number; 
 
 /** A room for folder F: one fixture per subfolder in rows facing +Z, plus a table for loose files. */
 function buildRoom(fs: FsIndex, folderId: NodeId, theme: ThemeId, lobby: boolean, skip: Set<NodeId>): BuiltRoom {
+  const reserve = lobby ? undefined : ROOM_RESERVE[fs.path(folderId)] ?? ROOM_RESERVE[`*:${theme}`]
   const kids = fs.children(folderId).filter((k) => !skip.has(k.id))
   const files = kids.filter((k): k is FileNode => k.type === 'file')
   const subs = lobby ? [] : kids.filter((k) => k.type === 'folder')
@@ -316,7 +317,7 @@ function buildRoom(fs: FsIndex, folderId: NodeId, theme: ThemeId, lobby: boolean
   const widths = fixtures.map((f) => f.fixture.size[0])
   const maxW = Math.max(0, ...widths, table?.fixture.size[0] ?? 0)
   const totalArea = widths.reduce((a, w) => a + (w + 0.5) * (SHELF.depth + ROOM.aisle), 0)
-  const innerW = Math.min(Math.max(maxW, ROOM.min - 2 * ROOM.margin, Math.sqrt(totalArea) * 1.25), Math.max(ROOM.maxInnerW, maxW))
+  const innerW = Math.min(Math.max(maxW, reserve?.[0] ?? 0, ROOM.min - 2 * ROOM.margin, Math.sqrt(totalArea) * 1.25), Math.max(ROOM.maxInnerW, maxW, reserve?.[0] ?? 0))
   const rows: BuiltFixture[][] = []
   let row: BuiltFixture[] = []
   let rowW = 0
@@ -347,6 +348,8 @@ function buildRoom(fs: FsIndex, folderId: NodeId, theme: ThemeId, lobby: boolean
   } else if (rows.length) {
     z += -ROOM.aisle + 0.9
   }
+  // Furnishing zone (desk, meeting table) at the front of the room.
+  if (reserve) z += reserve[1]
   const w = Math.max(ROOM.min, innerW + 2 * ROOM.margin)
   const d = Math.max(ROOM.min, z + ROOM.margin)
   // Center contents if the room was stretched to the minimum size.
