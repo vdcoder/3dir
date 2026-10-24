@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
+import type * as THREE from 'three'
 import { PINS } from '../mapping/plan'
 import { fs } from '../state/store'
 import { anchorOf } from './worldData'
@@ -15,10 +18,18 @@ export const pins = PINS.flatMap((p) => {
 })
 
 export function Pins() {
+  const refs = useRef<(THREE.Group | null)[]>([])
+  // Pins are for orientation at a distance; up close they'd only get in the way.
+  useFrame(({ camera }) => {
+    pins.forEach((p, i) => {
+      const g = refs.current[i]
+      if (g) g.visible = camera.position.distanceTo({ x: p.x, y: p.base, z: p.z } as THREE.Vector3) > 16
+    })
+  })
   return (
     <group>
-      {pins.map((p) => (
-        <group key={p.nodeId}>
+      {pins.map((p, i) => (
+        <group key={p.nodeId} ref={(g) => { refs.current[i] = g }}>
           <Line points={[[p.x, p.base + 0.05, p.z], [p.x, p.top, p.z]]} color="#b8892f" lineWidth={2.2} transparent opacity={0.9} />
           <mesh position={[p.x, p.top, p.z]}>
             <sphereGeometry args={[0.16, 16, 12]} />

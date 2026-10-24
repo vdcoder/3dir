@@ -1,4 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import type * as THREE from 'three'
 import { Line } from '@react-three/drei'
 import type { AABB } from '../mapping/layout'
 import type { NodeId } from '../model/types'
@@ -17,6 +19,13 @@ function Outline({ id, color, width, beacon }: { id: NodeId; color: string; widt
   const a = anchorOf(id)
   const shown = a ? anchorOf(a.shownAs) ?? a : undefined
   const pts = useMemo(() => (shown ? edges(shown.bounds, shown.level === 'item' || shown.level === 'box' ? 0.015 : 0.06) : []), [shown])
+  const beaconRef = useRef<THREE.Group>(null)
+  useFrame(({ camera }) => {
+    if (!beaconRef.current || !shown) return
+    const b2 = shown.bounds
+    const d = Math.hypot(camera.position.x - (b2.min[0] + b2.max[0]) / 2, camera.position.y - b2.max[1], camera.position.z - (b2.min[2] + b2.max[2]) / 2)
+    beaconRef.current.visible = d > 14
+  })
   if (!shown || shown.level === 'land') return null
   const b = shown.bounds
   const top = b.max[1]
@@ -27,13 +36,13 @@ function Outline({ id, color, width, beacon }: { id: NodeId; color: string; widt
     <group>
       <Line points={pts} segments color={color} lineWidth={width} depthTest={false} renderOrder={10} transparent opacity={0.95} />
       {beacon && size < 4 && (
-        <>
+        <group ref={beaconRef}>
           <Line points={[[cx, top + 0.05, cz], [cx, top + 2.4, cz]]} color={color} lineWidth={2} depthTest={false} renderOrder={10} transparent opacity={0.8} />
           <mesh position={[cx, top + 2.45, cz]} renderOrder={11}>
             <sphereGeometry args={[0.12, 16, 12]} />
             <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
           </mesh>
-        </>
+        </group>
       )}
     </group>
   )

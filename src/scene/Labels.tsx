@@ -1,5 +1,5 @@
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { NodeId } from '../model/types'
 import { fs, useStore } from '../state/store'
@@ -96,6 +96,7 @@ const rootId = fs.roots()[0].id
 const refs = new Map<string, HTMLDivElement>()
 const sizes = new Map<string, [number, number]>()
 let itemTag: HTMLDivElement | null = null
+let offscreen: HTMLButtonElement | null = null
 
 /** DOM layer with every label, rendered over the canvas (outside the 3D tree). */
 export function LabelLayer() {
@@ -117,6 +118,15 @@ export function LabelLayer() {
         </div>
       ))}
       <div ref={(el) => { itemTag = el }} className="wl wl-item" style={{ display: 'none' }} />
+      <button
+        ref={(el) => { offscreen = el }}
+        className="offscreen"
+        style={{ display: 'none' }}
+        title="The selection is outside the current view. Click to show it."
+        onClick={() => { const id = useStore.getState().world.selectedId; if (id) useStore.getState().showInWorld(id) }}
+      >
+        <span className="arrow">➜</span><span className="name" />
+      </button>
     </div>
   )
 }
@@ -125,10 +135,12 @@ export function LabelLayer() {
 export function LabelUpdater() {
   const v = useMemo(() => new THREE.Vector3(), [])
   const selectedRef = useRef<NodeId | null>(null)
-  // Re-render frames when selection/hover/focus change so labels update.
-  useStore((s) => s.world.selectedId)
-  useStore((s) => s.hoverId)
-  useStore((s) => s.world.focusId)
+  // Draw a frame when selection/hover/focus change so labels and indicators update.
+  const invalidate = useThree((s) => s.invalidate)
+  const sel = useStore((s) => s.world.selectedId)
+  const hov = useStore((s) => s.hoverId)
+  const foc = useStore((s) => s.world.focusId)
+  useEffect(() => { invalidate() }, [sel, hov, foc, invalidate])
 
   useFrame(({ camera, size }) => {
     const { world, hoverId } = useStore.getState()
@@ -176,17 +188,19 @@ export function LabelUpdater() {
       el.classList.toggle('selected', c.nodeId !== null && c.nodeId === selectedId)
       el.classList.toggle('hovered', c.nodeId !== null && c.nodeId === hoverId)
     }
-    // Item tag: only for the hovered or selected file.
+    updateOffscreen(cam, size, selectedId, v)
+    // Item tag: the hovered or selected file, or the closed box a selection is inside.
     const tag = itemTag
     if (!tag) return
-    const itemId = [hoverId, selectedId].find((id) => id && fs.get(id)?.type === 'file')
-    const item = itemId ? itemById.get(itemId) : undefined
-    if (!item) { tag.style.display = 'none'; return }
+    const itemId = [hoverId, selectedId].find((id) => id && (fs.get(id)?.type === 'file' || layout.anchors.get(id)?.shownAs !== id))
+    const shownAs = itemId ? layout.anchors.get(itemId)?.shownAs : undefined
+    const item = itemId ? itemById.get(itemId) ?? (shownAs ? itemById.get(shownAs) : undefined) : undefined
+    if (!item || !itemId) { tag.style.display = 'none'; return }
     v.set(item.pos[0], item.pos[1] + item.size[1] / 2 + 0.05, item.pos[2]).project(cam)
     if (v.z > 1) { tag.style.display = 'none'; return }
     tag.style.display = 'block'
-    tag.textContent = fs.get(item.nodeId)!.name
-    tag.classList.toggle('selected', item.nodeId === selectedId)
+    tag.textContent = item.nodeId === itemId ? fs.get(itemId)!.name : `${fs.get(itemId)!.name} — inside the “${fs.get(item.nodeId)!.name}” box`
+    tag.classList.toggle('selected', itemId === selectedId)
     const x = (v.x * 0.5 + 0.5) * size.width
     const y = (-v.y * 0.5 + 0.5) * size.height
     tag.style.transform = `translate(${Math.round(x - tag.offsetWidth / 2)}px, ${Math.round(y - tag.offsetHeight - 6)}px)`
@@ -195,3 +209,32 @@ export function LabelUpdater() {
 }
 
 const itemById = new Map(layout.items.map((i) => [i.nodeId, i]))
+
+/** Edge-of-view pointer to a selection the camera can't see (no automatic camera move). */
+function updateOffscreen(cam: THREE.PerspectiveCamera, size: { width: number; height: number }, selectedId: NodeId | null, v: THREE.Vector3) {
+  const el = offscreen
+  if (!el) return
+  const a = selectedId ? layout.anchors.get(selectedId) : undefined
+  if (!a || a.level === 'land') { el.style.display = 'none'; return }
+  const b = (layout.anchors.get(a.shownAs) ?? a).bounds
+  v.set((b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2).project(cam)
+  const behind = v.z > 1
+  if (!behind && Math.abs(v.x) < 0.97 && Math.abs(v.y) < 0.97) { el.style.display = 'none'; return }
+  let dx = behind ? -v.x : v.x
+  let dy = behind ? -v.y : v.y
+  if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) dy = -1
+  const k = 1 / Math.max(Math.abs(dx), Math.abs(dy))
+  dx *= k
+  dy *= k
+  el.style.display = 'flex'
+  const name = el.querySelector('.name') as HTMLSpanElement
+  const text = fs.get(selectedId!)!.name
+  if (name.textContent !== text) name.textContent = text
+  const w = el.offsetWidth
+  const h = el.offsetHeight
+  const x = THREE.MathUtils.clamp((dx * 0.5 + 0.5) * size.width - w / 2, 12, size.width - w - 12)
+  const y = THREE.MathUtils.clamp((-dy * 0.5 + 0.5) * size.height - h / 2, 56, size.height - h - 12)
+  el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
+  const arrow = el.querySelector('.arrow') as HTMLSpanElement
+  arrow.style.transform = `rotate(${Math.atan2(-dy, dx)}rad)`
+}

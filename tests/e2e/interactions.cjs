@@ -83,10 +83,27 @@ const timer = setTimeout(() => { console.error('interaction tests timed out'); p
     check('world click selects folder', (s.wSel ?? '').endsWith('Budgets\\FY2027'), s.wSel)
     check('world select shows it in explorer', (s.exSel ?? '').endsWith('Budgets\\FY2027') && s.exFolder.endsWith('Finance\\Budgets'), JSON.stringify(s))
 
+    // 7b. Selecting something out of view: no camera move, an edge indicator instead.
+    const nonceBefore = (await state()).nonce
+    await page.evaluate(() => {
+      const { fs, useStore } = window.__3dir
+      const album = fs.resolve('C:\\Users\\Amanda\\Pictures\\Travel\\2026 Kyoto')
+      useStore.getState().explorerSelect(fs.children(album.id)[0].id)
+    })
+    await page.waitForTimeout(800)
+    s = await state()
+    check('out-of-view selection keeps the camera', s.nonce === nonceBefore && s.focus.endsWith('Finance\\Budgets'), JSON.stringify(s))
+    const visible = (want) => page.waitForFunction((w) => (getComputedStyle(document.querySelector('.offscreen')).display !== 'none') === w, want, { timeout: 20_000 }).then(() => true, () => false)
+    check('off-screen indicator appears', await visible(true))
+    await page.locator('.offscreen').click()
+    s = await state()
+    check('indicator shows the item in the world', s.focus.endsWith('Travel\\2026 Kyoto'), s.focus)
+    check('indicator hides once the item is in view', await visible(false))
+
     // 8. Up and Overview in the world HUD.
     await page.getByRole('button', { name: '↑ Up' }).click()
     s = await state()
-    check('world Up goes to parent', s.focus.endsWith('Alder & Finch\\Finance'), s.focus)
+    check('world Up goes to parent', s.focus.endsWith('Pictures\\Travel'), s.focus)
     await page.getByRole('button', { name: 'Overview' }).click()
     s = await state()
     check('Overview returns to C:\\', s.focus === 'C:\\', s.focus)
