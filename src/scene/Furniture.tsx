@@ -2,25 +2,24 @@ import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { assetUrl } from '../assetUrl'
-import type { ItemEntity } from '../mapping/layout'
+import type { ItemEntity } from '../mapping/types'
 import type { ThemeId } from '../mapping/plan'
 import type { NodeId } from '../model/types'
 import { fs } from '../state/store'
 import { KIND_STYLE } from '../ui/kinds'
 import { Boxes, type BoxSpec } from './Boxes'
-import { layout, PALETTE } from './worldData'
-import { usePick } from './usePick'
+import { PALETTE, useLayout } from './worldData'
 
 const SHELF_BASE = 0.14
 const SHELF_LEVEL = 0.64
 const SIDE = 0.05
-const SHELF_BACK: Record<ThemeId, string> = { business: '#ece3d3', studio: '#f1e6d4', gallery: '#ffffff', home: '#efe4d2', system: '#dfe2e4' }
+const SHELF_BACK: Record<ThemeId, string> = { business: '#ece3d3', medical: '#eef3f1', studio: '#f1e6d4', gallery: '#ffffff', home: '#efe4d2', system: '#dfe2e4' }
 
 interface Parts { specs: BoxSpec[]; ids: NodeId[] }
 
 /** Shelves, tables and display walls, split into wood/dark parts per theme. */
 export function Fixtures() {
-  const pick = usePick()
+  const layout = useLayout()
   const groups = useMemo(() => {
     const wood = new Map<ThemeId, Parts>()
     const dark = new Map<ThemeId, Parts>()
@@ -58,20 +57,29 @@ export function Fixtures() {
         add(dark, f.theme, { pos: [x, H / 2 + 0.06, z], size: [W, H, D] }, id)
       }
     }
-    return { wood, dark, back }
-  }, [])
+    // Invisible volumes so the gap between binders still picks the compartment.
+    const compartments: Parts = { specs: [], ids: [] }
+    for (const c of layout.compartments) {
+      for (const b of c.segments) {
+        compartments.specs.push({ pos: [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2], size: [b.max[0] - b.min[0] + 0.02, b.max[1] - b.min[1] + 0.02, b.max[2] - b.min[2] + 0.02] })
+        compartments.ids.push(c.nodeId)
+      }
+    }
+    return { wood, dark, back, compartments }
+  }, [layout])
 
   return (
     <group>
       {[...groups.wood].map(([t, p]) => (
-        <Boxes key={'w' + t} boxes={p.specs} color={PALETTE[t].wood} roughness={0.75} onPick={(i, _e, k) => pick(p.ids[i], k)} />
+        <Boxes key={'w' + t} boxes={p.specs} color={PALETTE[t].wood} roughness={0.75} pick={(i) => p.ids[i]} />
       ))}
       {[...groups.back].map(([t, p]) => (
-        <Boxes key={'b' + t} boxes={p.specs} color={SHELF_BACK[t]} roughness={0.9} onPick={(i, _e, k) => pick(p.ids[i], k)} />
+        <Boxes key={'b' + t} boxes={p.specs} color={SHELF_BACK[t]} roughness={0.9} pick={(i) => p.ids[i]} />
       ))}
       {[...groups.dark].map(([t, p]) => (
-        <Boxes key={'d' + t} boxes={p.specs} color={t === 'gallery' ? '#f4f1ec' : PALETTE[t].woodDark} roughness={0.8} onPick={(i, _e, k) => pick(p.ids[i], k)} />
+        <Boxes key={'d' + t} boxes={p.specs} color={t === 'gallery' ? '#f4f1ec' : PALETTE[t].woodDark} roughness={0.8} pick={(i) => p.ids[i]} />
       ))}
+      <Boxes boxes={groups.compartments.specs} hidden pick={(i) => groups.compartments.ids[i]} />
     </group>
   )
 }
@@ -87,7 +95,7 @@ function itemColor(it: ItemEntity): string {
 
 /** Every visible file (and archive box) as an instanced, pickable object. */
 export function Items() {
-  const pick = usePick()
+  const layout = useLayout()
   useInvalidateBridge()
   const { bodies, labels } = useMemo(() => {
     const bodies: BoxSpec[] = []
@@ -107,11 +115,11 @@ export function Items() {
       }
     }
     return { bodies, labels }
-  }, [])
+  }, [layout])
 
   return (
     <group>
-      <Boxes boxes={bodies} roughness={0.7} onPick={(i, _e, k) => pick(layout.items[i].nodeId, k)} />
+      <Boxes boxes={bodies} roughness={0.7} pick={(i) => layout.items[i]?.nodeId ?? null} />
       <Boxes boxes={labels} castShadow={false} roughness={0.9} />
       <Pictures />
     </group>
@@ -122,12 +130,12 @@ const pictureGeometry = new THREE.PlaneGeometry(1, 1)
 
 /** The image on each frame: the generated photo when there is one, else a soft gradient from its palette. */
 function Pictures() {
-  const pick = usePick()
+  const layout = useLayout()
   const frames = useMemo(() => layout.items.filter((i) => i.form === 'frame').map((it) => {
     const n = fs.get(it.nodeId)
     const p = n?.type === 'file' && n.preview?.format === 'image' ? n.preview : undefined
-    return { it, src: p?.src ? p.src.replace('photos/', 'photos/thumbs/') : undefined, palette: p?.palette ?? [KIND_STYLE[it.kind].color, '#ddd'] }
-  }), [])
+    return { it, src: p?.src ? p.src.replace('photos/', 'photos/thumbs/') : undefined, palette: p?.palette ?? [KIND_STYLE[it.kind].color, '#ddd'], user: { pick: () => it.nodeId } }
+  }), [layout])
   const materials = useMemo(() => {
     const loader = new THREE.TextureLoader()
     return frames.map((f) => {
@@ -142,10 +150,7 @@ function Pictures() {
         <mesh key={f.it.nodeId} geometry={pictureGeometry} material={materials[i]}
           position={[f.it.pos[0], f.it.pos[1], f.it.pos[2] + f.it.size[2] / 2 + 0.004]}
           scale={[f.it.size[0] - 0.1, f.it.size[1] - 0.1, 1]}
-          onClick={(e) => { e.stopPropagation(); pick(f.it.nodeId, 'click') }}
-          onDoubleClick={(e) => { e.stopPropagation(); pick(f.it.nodeId, 'double') }}
-          onPointerMove={(e) => { e.stopPropagation(); pick(f.it.nodeId, 'over') }}
-          onPointerOut={() => pick(f.it.nodeId, 'out')} />
+          userData={f.user} />
       ))}
     </group>
   )

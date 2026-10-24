@@ -193,3 +193,24 @@ button { font: inherit; color: inherit; }
   .address { display: none; }
   .navbtns { display: none; }
 }
+
+/* ---------- Iteration 2: worlds, regions, areas ---------- */
+.world-stage { position: absolute; inset: 0; }
+.world-stage.world-box-warm { background: radial-gradient(120% 90% at 50% 35%, #f7efe2 0%, #eadcc6 60%, #dccab0 100%); }
+.world-stage.world-box-cool { background: radial-gradient(120% 90% at 50% 35%, #f1f4f6 0%, #e1e6ea 60%, #cfd6dc 100%); }
+.wl-region { padding: 3px 10px 4px; background: rgb(255 255 255 / 90%); border-radius: 6px; font-size: 12px; font-weight: 650; color: var(--text); box-shadow: 0 1px 5px rgb(0 0 0 / 12%); border-left: 4px solid #8a8a8a; }
+.wl-region-district { font-size: 14px; border-left-color: #3d4650; }
+.wl-region-block { border-left-color: #6f8f55; }
+.wl-region-yard { border-left-color: #8c8274; }
+.wl-region-square { border-left-color: #9b5a44; }
+.wl-region-garden, .wl-region-court { border-left-color: #6f8f5a; }
+.wl-area { padding: 4px 11px 5px; background: rgb(34 37 42 / 88%); color: #fff; border-radius: 8px; font-size: 12.5px; font-weight: 650; text-align: center; box-shadow: 0 2px 8px rgb(0 0 0 / 20%); }
+.wl-area .s { color: rgb(255 255 255 / 72%); font-size: 10px; }
+.wl-area-campus { background: #1f6f68; font-size: 15px; padding: 6px 14px 7px; border: 2px solid #d9a53a; box-shadow: 0 4px 16px rgb(31 111 104 / 35%); }
+.wl-area-campus .s { color: rgb(255 255 255 / 85%); font-size: 10.5px; }
+.wl-area-minor { background: rgb(255 255 255 / 88%); color: var(--text); font-weight: 600; font-size: 11.5px; }
+.wl-area-minor .s { color: var(--text-3); }
+.wl-item .s { display: block; font-size: 10px; color: var(--text-3); font-weight: 450; }
+.wl.revealed { outline: 1px dashed rgb(47 111 219 / 55%); }
+.crumb-sep.box-edge { color: #a0723d; font-size: 12px; }
+.crumb.box-root { background: #f3e6d2; }

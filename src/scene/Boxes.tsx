@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
+import type { NodeId } from '../model/types'
 
 export interface BoxSpec {
   /** Center. */
@@ -17,14 +17,19 @@ interface Props {
   castShadow?: boolean
   receiveShadow?: boolean
   geometry?: THREE.BufferGeometry
-  onPick?: (index: number, e: ThreeEvent<PointerEvent | MouseEvent>, kind: 'click' | 'double' | 'over' | 'out') => void
+  material?: THREE.Material
+  /** Makes the boxes pickable: instance index -> canonical node. */
+  pick?: (index: number) => NodeId | null
+  /** Draw nothing but still answer picks (invisible pick volumes). */
+  hidden?: boolean
   meshRef?: React.MutableRefObject<THREE.InstancedMesh | null>
 }
 
 const unitBox = new THREE.BoxGeometry(1, 1, 1)
+const noRaycast = () => {}
 
 /** Many boxes in one draw call, with optional per-box colors and picking. */
-export function Boxes({ boxes, color = '#ffffff', roughness = 0.85, metalness = 0, castShadow = true, receiveShadow = true, geometry = unitBox, onPick, meshRef }: Props) {
+export function Boxes({ boxes, color = '#ffffff', roughness = 0.85, metalness = 0, castShadow = true, receiveShadow = true, geometry = unitBox, material, pick, hidden = false, meshRef }: Props) {
   const ref = useRef<THREE.InstancedMesh>(null)
   const perInstanceColor = boxes.some((b) => b.color)
 
@@ -46,22 +51,24 @@ export function Boxes({ boxes, color = '#ffffff', roughness = 0.85, metalness = 
     mesh.computeBoundingBox()
   }, [boxes, color, perInstanceColor, meshRef])
 
-  const material = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: perInstanceColor ? '#ffffff' : color, roughness, metalness }),
-    [color, roughness, metalness, perInstanceColor],
-  )
+  const mat = useMemo(() => {
+    if (material) return material
+    const m = new THREE.MeshStandardMaterial({ color: perInstanceColor ? '#ffffff' : color, roughness, metalness })
+    if (hidden) m.visible = false
+    return m
+  }, [material, color, roughness, metalness, perInstanceColor, hidden])
+
+  const userData = useMemo(() => (pick ? { pick: (h: THREE.Intersection) => (h.instanceId === undefined ? null : pick(h.instanceId)) } : {}), [pick])
 
   if (boxes.length === 0) return null
   return (
     <instancedMesh
       ref={ref}
-      args={[geometry, material, boxes.length]}
-      castShadow={castShadow}
-      receiveShadow={receiveShadow}
-      onClick={onPick ? (e) => { if (e.instanceId !== undefined) { e.stopPropagation(); onPick(e.instanceId, e, 'click') } } : undefined}
-      onDoubleClick={onPick ? (e) => { if (e.instanceId !== undefined) { e.stopPropagation(); onPick(e.instanceId, e, 'double') } } : undefined}
-      onPointerMove={onPick ? (e) => { if (e.instanceId !== undefined) { e.stopPropagation(); onPick(e.instanceId, e, 'over') } } : undefined}
-      onPointerOut={onPick ? (e) => { if (e.instanceId !== undefined) onPick(e.instanceId, e, 'out') } : undefined}
+      args={[geometry, mat, boxes.length]}
+      castShadow={castShadow && !hidden}
+      receiveShadow={receiveShadow && !hidden}
+      userData={userData}
+      {...(pick ? {} : { raycast: noRaycast })}
     />
   )
 }

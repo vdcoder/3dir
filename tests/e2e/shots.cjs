@@ -22,8 +22,18 @@ const go = (path, how = 'worldEnter') => async (page) => {
   await page.waitForTimeout(2200)
 }
 
+const AMM = 'C:\\Users\\Amanda\\Documents\\Business\\AmandaMedicalMiami'
 const SCENARIOS = {
+  'first-visit': async () => {},
   overview: async () => {},
+  amanda: go('C:\\Users\\Amanda'),
+  documents: go('C:\\Users\\Amanda\\Documents'),
+  'amm-campus': go(AMM),
+  'amm-finance': go(`${AMM}\\Finance`),
+  'amm-clients': go(`${AMM}\\Clients`),
+  'amm-box': go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3`),
+  'amm-deep': go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3\\Delivery confirmations`),
+  'chrome-box': go('C:\\Program Files\\Google\\Chrome\\Application\\155.0.7610.88'),
   business: go(ONEDRIVE),
   finance: go(`${ONEDRIVE}\\Finance`),
   budgets: go(`${ONEDRIVE}\\Finance\\Budgets`),
@@ -59,7 +69,7 @@ const freePort = () => new Promise((resolve) => {
       await page.goto(`http://localhost:${port}/`)
       await page.waitForFunction(() => window.__appReady === true, null, { timeout: 150_000 })
       await page.waitForTimeout(1500)
-      if (name !== 'overview') await page.getByRole('button', { name: 'Got it' }).click().catch(() => {})
+      if (name !== 'first-visit') await page.getByRole('button', { name: 'Got it' }).click().catch(() => {})
       try { await run(page) } catch (e) { errors.push(`${name}: ${e.message}`) }
       await page.screenshot({ path: join(out, `${name}.png`), timeout: 120_000 })
       await browser.close()

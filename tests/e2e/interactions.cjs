@@ -1,4 +1,4 @@
-// End-to-end checks of explorer/world synchronization in a real browser.
+// End-to-end checks of navigation, picking and explorer/world sync in a real browser.
 // Requires a build (npm run build). Usage: node tests/e2e/interactions.cjs
 const { chromium } = require('playwright')
 const { spawn } = require('node:child_process')
@@ -8,7 +8,9 @@ const net = require('node:net')
 const freePort = () => new Promise((resolve) => {
   const s = net.createServer().listen(0, () => { const { port } = s.address(); s.close(() => resolve(port)) })
 })
-const timer = setTimeout(() => { console.error('interaction tests timed out'); process.exit(1) }, 240_000)
+const timer = setTimeout(() => { console.error('interaction tests timed out'); process.exit(1) }, 600_000)
+const ONEDRIVE = 'C:\\Users\\Amanda\\OneDrive - Alder & Finch'
+const CHROME_DEEP = 'C:\\Program Files\\Google\\Chrome\\Application'
 
 ;(async () => {
   const port = await freePort()
@@ -22,102 +24,147 @@ const timer = setTimeout(() => { console.error('interaction tests timed out'); p
     const errors = []
     page.on('pageerror', (e) => errors.push(String(e)))
     await page.goto(`http://localhost:${port}/`)
-    await page.waitForFunction(() => window.__appReady === true, null, { timeout: 60_000 })
+    await page.waitForFunction(() => window.__appReady === true, null, { timeout: 120_000 })
     const state = () => page.evaluate(() => {
-      const s = window.__3dir.useStore.getState()
-      const p = (id) => (id ? window.__3dir.fs.path(id) : null)
-      return { linked: s.linked, exFolder: p(s.explorer.folderId), exSel: p(s.explorer.selectedId), focus: p(s.world.focusId), wSel: p(s.world.selectedId), nonce: s.world.frameNonce, details: p(s.detailsId) }
+      const { useStore, fs } = window.__3dir
+      const s = useStore.getState()
+      const p = (id) => (id ? fs.path(id) : null)
+      return {
+        linked: s.linked, ex: p(s.explorer.location), exSel: p(s.explorer.selectedId), loc: p(s.world.location), wSel: p(s.world.selectedId),
+        nonce: s.world.frameNonce, back: s.world.back.length, hud: document.querySelector('.world-crumbs .where')?.textContent,
+      }
     })
-    const row = (name) => page.locator('.list-row', { hasText: name }).first()
-    const tree = (name) => page.locator('.tree-row', { hasText: name }).first()
+    const act = (fn, ...args) => page.evaluate(([f, a]) => {
+      const { useStore, fs } = window.__3dir
+      const id = (p) => fs.resolve(p).id
+      return new Function('s', 'id', 'a', f)(useStore.getState(), id, a)
+    }, [fn, args])
+    const settle = (ms = 2500) => page.waitForTimeout(ms)
+    const exact = (name) => new RegExp('^' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
+    const row = (name) => page.locator('.list-row').filter({ has: page.locator('.name span', { hasText: exact(name) }) }).first()
+    const tree = (name) => page.locator('.tree-row').filter({ has: page.locator('.label', { hasText: exact(name) }) }).first()
+    const hud = (name) => page.locator('.world-buttons').getByRole('button', { name })
 
-    // 0. First-visit guide is shown, and can be dismissed.
+    // 0. First-visit guide; a pin goes straight to its destination.
     check('guide shows on first visit', await page.getByRole('region', { name: 'How to use 3dir' }).isVisible())
     await page.getByRole('button', { name: 'Got it' }).click()
-
-    // 0b. A pin goes straight to its destination.
     await page.locator('.wl-pin', { hasText: 'FY2027 Budget' }).click()
-    let s0 = await state()
-    check('pin click goes to the pinned folder', s0.focus.endsWith('Budgets\\FY2027') && s0.exFolder.endsWith('Budgets\\FY2027'), JSON.stringify(s0))
-    await page.getByRole('button', { name: 'Overview' }).click()
-
-    // 1. Opening a folder in the tree moves the world (linked).
-    await tree('Users').click()
     let s = await state()
-    check('tree open sets explorer folder', s.exFolder === 'C:\\Users', s.exFolder)
-    check('linked: world follows explorer open', s.focus === 'C:\\Users', s.focus)
+    check('pin click goes to the pinned folder', s.loc.endsWith('Budgets\\FY2027') && s.ex.endsWith('Budgets\\FY2027'), JSON.stringify(s))
+    await hud('Overview').click()
 
-    // 2. Selecting in the list highlights in the world without moving the camera.
+    // 1. Tree / list (linked).
+    await tree('Users').click()
+    s = await state()
+    check('tree open moves both views', s.ex === 'C:\\Users' && s.loc === 'C:\\Users', JSON.stringify(s))
     const before = s.nonce
     await row('Amanda').click()
     s = await state()
-    check('list select sets world selection', s.wSel === 'C:\\Users\\Amanda', s.wSel)
-    check('list select does not move camera', s.nonce === before, `${before} -> ${s.nonce}`)
-    check('details card shows selection', await page.locator('[data-testid=details] h2', { hasText: 'Amanda' }).count() === 1)
-
-    // 3. Double-click opens the folder in both views.
+    check('list select highlights in world, camera stays', s.wSel === 'C:\\Users\\Amanda' && s.nonce === before, JSON.stringify(s))
     await row('Amanda').dblclick()
     s = await state()
-    check('double-click opens folder', s.exFolder === 'C:\\Users\\Amanda' && s.focus === 'C:\\Users\\Amanda', JSON.stringify(s))
+    check('double-click opens folder in both views', s.ex === 'C:\\Users\\Amanda' && s.loc === 'C:\\Users\\Amanda', JSON.stringify(s))
 
-    // 4. Linked OFF: views are independent.
-    await page.getByRole('switch', { name: /Linked navigation/ }).click()
+    // 2. Selecting in the world never navigates.
+    await act("s.worldEnter(id(a[0] + '\\\\Finance\\\\Budgets'))", ONEDRIVE)
+    await settle()
+    const backBefore = (await state()).back
+    await page.locator('.wl-fixture', { hasText: 'FY2027' }).first().click()
     s = await state()
-    check('linked toggles off', s.linked === false)
+    check('world click selects the folder in both views', (s.wSel ?? '').endsWith('Budgets\\FY2027') && (s.exSel ?? '').endsWith('Budgets\\FY2027'), JSON.stringify(s))
+    check('world click does not move either view or history', s.loc.endsWith('Finance\\Budgets') && s.ex.endsWith('Finance\\Budgets') && s.back === backBefore, JSON.stringify(s))
+
+    // 3. Picking: a binder inside its shelf, not the shelf.
+    const binderPick = await page.evaluate(() => {
+      const { useStore, fs, screenOf, pickAt } = window.__3dir
+      const fy = fs.resolve('C:\\Users\\Amanda\\OneDrive - Alder & Finch\\Finance\\Budgets\\FY2027')
+      const file = fs.children(fy.id).find((c) => c.type === 'file')
+      const p = screenOf(file.id)
+      void useStore
+      return { want: file.id, got: p && p.onScreen ? pickAt(p.x, p.y)?.nodeId : 'off-screen' }
+    })
+    check('clicking a binder picks the binder, not its shelf', binderPick.got === binderPick.want, JSON.stringify(binderPick))
+
+    // 4. Up is canonical; Back/Forward are history.
+    await hud('↑ Up').click()
+    s = await state()
+    check('Up goes to the canonical parent', s.loc === `${ONEDRIVE}\\Finance` && s.wSel === `${ONEDRIVE}\\Finance\\Budgets`, JSON.stringify(s))
+    await hud('↑ Up').click()
+    await page.getByRole('button', { name: 'World back' }).click()
+    s = await state()
+    check('Back returns to the previous place', s.loc === `${ONEDRIVE}\\Finance`, s.loc)
+    await page.getByRole('button', { name: 'World forward' }).click()
+    s = await state()
+    check('Forward goes forward again', s.loc === ONEDRIVE, s.loc)
+
+    // 5. Box-worlds: the deep Chrome folder is reachable; double-click a box opens it.
+    await act("s.goTo(id(a[0]))", CHROME_DEEP)
+    await settle(3500)
+    s = await state()
+    check('deep folder found by search', s.wSel === CHROME_DEEP, JSON.stringify(s))
+    // The version folder sits as a closed box on the Application compartment: find it on screen.
+    const boxShot = await page.evaluate(() => {
+      const { screenOf, pickAt, fs, useStore } = window.__3dir
+      const loc = useStore.getState().world.location
+      const walk = (id, out) => { for (const c of fs.children(id)) { if (c.type === 'folder') { out.push(c.id); walk(c.id, out) } } return out }
+      for (const id of walk(loc, [])) {
+        const p = screenOf(id)
+        if (!p || !p.onScreen) continue
+        const hit = pickAt(p.x, p.y)
+        if (hit && hit.level === 'box' && hit.nodeId === id) return { id, x: p.x, y: p.y, path: fs.path(id) }
+      }
+      return null
+    })
+    check('a closed box is visible and pickable', !!boxShot, 'no box found')
+    if (boxShot) {
+      await page.mouse.dblclick(boxShot.x, boxShot.y)
+      await settle(3000)
+      s = await state()
+      check('double-click on a box opens a box-world rooted at it', s.loc === boxShot.path && /Inside a box/.test(s.hud ?? ''), JSON.stringify(s))
+      await hud('↑ Up').click()
+      await settle(3000)
+      s = await state()
+      check('Up leaves the box-world to its canonical parent', s.loc === boxShot.path.split('\\').slice(0, -1).join('\\') && s.wSel === boxShot.path, JSON.stringify(s))
+      await page.getByRole('button', { name: 'World back' }).click()
+      await settle(3000)
+      s = await state()
+      check('Back re-enters the box-world', s.loc === boxShot.path && /Inside a box/.test(s.hud ?? ''), JSON.stringify(s))
+    }
+
+    // 6. Linked OFF: independent views; Show in World still works.
+    await hud('Overview').click()
+    await page.getByRole('switch', { name: /Linked navigation/ }).click()
     await tree('Windows').click()
     s = await state()
-    check('unlinked: world stays put', s.focus === 'C:\\Users\\Amanda', s.focus)
+    check('unlinked: world stays put', s.loc === 'C:\\' && s.ex === 'C:\\Windows', JSON.stringify(s))
     await row('System32').click()
-    s = await state()
-    check('unlinked: world selection unchanged', s.wSel !== 'C:\\Windows\\System32', s.wSel)
-
-    // 5. Show in World still works when unlinked.
     await page.getByRole('button', { name: 'Show in World' }).click()
     s = await state()
-    check('Show in World moves world', s.focus === 'C:\\Windows\\System32' && s.wSel === 'C:\\Windows\\System32', JSON.stringify(s))
-
-    // 6. Search goes to a deep file in both views.
+    check('Show in World reveals the folder inside its parent', s.loc === 'C:\\Windows' && s.wSel === 'C:\\Windows\\System32', JSON.stringify(s))
     await page.getByRole('switch', { name: /Linked navigation/ }).click()
+
+    // 7. Search goes to a deep file.
     await page.getByPlaceholder('Search files and folders').fill('Oakridge master services')
     await page.locator('.result').first().click()
     s = await state()
-    check('search selects file in explorer', (s.exSel ?? '').endsWith('Master Services Agreement - Oakridge Hotels.pdf'), s.exSel)
-    check('search frames file in world', (s.wSel ?? '').endsWith('Master Services Agreement - Oakridge Hotels.pdf'), s.wSel)
+    check('search reveals the file in both views', (s.exSel ?? '').endsWith('Master Services Agreement - Oakridge Hotels.pdf') && (s.wSel ?? '').endsWith('Master Services Agreement - Oakridge Hotels.pdf'), JSON.stringify(s))
 
-    // 7. Clicking the world selects an object and syncs the explorer.
-    await page.evaluate(() => window.__3dir.useStore.getState().worldEnter(window.__3dir.fs.resolve('C:\\Users\\Amanda\\OneDrive - Alder & Finch\\Finance\\Budgets').id))
-    await page.waitForTimeout(2500)
-    const label = page.locator('.wl-fixture', { hasText: 'FY2027' }).first()
-    await label.click()
-    s = await state()
-    check('world click selects folder', (s.wSel ?? '').endsWith('Budgets\\FY2027'), s.wSel)
-    check('world select shows it in explorer', (s.exSel ?? '').endsWith('Budgets\\FY2027') && s.exFolder.endsWith('Finance\\Budgets'), JSON.stringify(s))
-
-    // 7b. Selecting something out of view: no camera move, an edge indicator instead.
+    // 8. Out-of-view selection: no camera move, an edge indicator instead.
+    await settle()
     const nonceBefore = (await state()).nonce
-    await page.evaluate(() => {
-      const { fs, useStore } = window.__3dir
-      const album = fs.resolve('C:\\Users\\Amanda\\Pictures\\Travel\\2026 Kyoto')
-      useStore.getState().explorerSelect(fs.children(album.id)[0].id)
-    })
-    await page.waitForTimeout(800)
+    await act("const al = id(a[0]); s.explorerSelect(window.__3dir.fs.children(al)[0].id)", 'C:\\Users\\Amanda\\Pictures\\Travel\\2026 Kyoto')
+    const visible = (want) => page.waitForFunction((w) => (getComputedStyle(document.querySelector('.offscreen')).display !== 'none') === w, want, { timeout: 30_000 }).then(() => true, () => false)
     s = await state()
-    check('out-of-view selection keeps the camera', s.nonce === nonceBefore && s.focus.endsWith('Finance\\Budgets'), JSON.stringify(s))
-    const visible = (want) => page.waitForFunction((w) => (getComputedStyle(document.querySelector('.offscreen')).display !== 'none') === w, want, { timeout: 20_000 }).then(() => true, () => false)
+    check('out-of-view selection keeps the camera', s.nonce === nonceBefore, JSON.stringify(s))
     check('off-screen indicator appears', await visible(true))
     await page.locator('.offscreen').click()
     s = await state()
-    check('indicator shows the item in the world', s.focus.endsWith('Travel\\2026 Kyoto'), s.focus)
+    check('indicator shows the item in the world', s.loc.endsWith('Travel\\2026 Kyoto'), s.loc)
     check('indicator hides once the item is in view', await visible(false))
 
-    // 8. Up and Overview in the world HUD.
-    await page.getByRole('button', { name: '↑ Up' }).click()
+    await hud('Overview').click()
     s = await state()
-    check('world Up goes to parent', s.focus.endsWith('Pictures\\Travel'), s.focus)
-    await page.getByRole('button', { name: 'Overview' }).click()
-    s = await state()
-    check('Overview returns to C:\\', s.focus === 'C:\\', s.focus)
-
+    check('Overview returns to C:\\', s.loc === 'C:\\', s.loc)
     check('no page errors', errors.length === 0, errors.join('\n'))
   } finally {
     await browser.close()

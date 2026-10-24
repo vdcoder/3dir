@@ -11,11 +11,11 @@ const Chevron = ({ dir }: { dir: 'left' | 'right' | 'up' }) => (
 )
 
 export function TopBar({ onTogglePanel }: { onTogglePanel(): void }) {
-  const folderId = useStore((s) => s.explorer.folderId)
+  const folderId = useStore((s) => s.explorer.location)
   const canBack = useStore((s) => s.explorer.back.length > 0)
   const canForward = useStore((s) => s.explorer.forward.length > 0)
   const linked = useStore((s) => s.linked)
-  const { explorerBack, explorerForward, explorerUp, explorerOpen, setLinked } = useStore.getState()
+  const { back, forward, up, explorerOpen, setLinked } = useStore.getState()
   const chain = fs.ancestry(folderId)
 
   return (
@@ -25,9 +25,9 @@ export function TopBar({ onTogglePanel }: { onTogglePanel(): void }) {
       </button>
       <div className="brand"><b>3dir</b><span>Your files. Your world.</span></div>
       <div className="navbtns">
-        <button className="iconbtn" aria-label="Back" title="Back" disabled={!canBack} onClick={explorerBack}><Chevron dir="left" /></button>
-        <button className="iconbtn" aria-label="Forward" title="Forward" disabled={!canForward} onClick={explorerForward}><Chevron dir="right" /></button>
-        <button className="iconbtn" aria-label="Up to parent folder" title="Up to parent folder" disabled={chain.length < 2} onClick={explorerUp}><Chevron dir="up" /></button>
+        <button className="iconbtn" aria-label="Back" title="Back" disabled={!canBack} onClick={() => back('explorer')}><Chevron dir="left" /></button>
+        <button className="iconbtn" aria-label="Forward" title="Forward" disabled={!canForward} onClick={() => forward('explorer')}><Chevron dir="right" /></button>
+        <button className="iconbtn" aria-label="Up to parent folder" title="Up to parent folder" disabled={chain.length < 2} onClick={() => up('explorer')}><Chevron dir="up" /></button>
       </div>
       <nav className="address" aria-label="Current folder path">
         {chain.map((n, i) => (

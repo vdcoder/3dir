@@ -92,6 +92,19 @@ export function grass(base: string, seed = 3): THREE.CanvasTexture {
   })
 }
 
+/** Mown lawn: grass with soft alternating stripes. */
+export function lawn(base: string, seed = 6, stripes = 4): THREE.CanvasTexture {
+  const g0 = grass(base, seed).image as HTMLCanvasElement
+  return canvas(512, (g, s) => {
+    g.drawImage(g0, 0, 0, s, s)
+    const t = s / stripes
+    for (let i = 0; i < stripes; i += 2) {
+      g.fillStyle = 'rgba(255,255,255,0.06)'
+      g.fillRect(i * t, 0, t, s)
+    }
+  })
+}
+
 /** Polished terrazzo / concrete speckle. */
 export function terrazzo(base: string, seed = 4): THREE.CanvasTexture {
   return canvas(512, (g, s) => {
@@ -165,4 +178,62 @@ export function signTexture(title: string, sub: string | undefined, bg: string, 
   t.colorSpace = THREE.SRGBColorSpace
   t.anisotropy = 8
   return t
+}
+
+/** Asphalt with fine aggregate speckle. */
+export function asphalt(base = '#8f9192', seed = 5): THREE.CanvasTexture {
+  return canvas(512, (g, s) => {
+    const r = rng(seed)
+    g.fillStyle = base
+    g.fillRect(0, 0, s, s)
+    for (let k = 0; k < 9000; k++) {
+      g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'
+      g.fillRect(r() * s, r() * s, 1.5, 1.5)
+    }
+  })
+}
+
+/** Herringbone brick pavement. */
+export function brick(base = '#b9785e', seed = 6): THREE.CanvasTexture {
+  return canvas(512, (g, s) => {
+    const r = rng(seed)
+    g.fillStyle = shade(base, -0.12)
+    g.fillRect(0, 0, s, s)
+    const u = s / 16
+    for (let i = -2; i < 18; i++) {
+      for (let j = -2; j < 18; j++) {
+        const x = i * u * 2
+        const y = j * u * 2
+        const horiz = (i + j) % 2 === 0
+        g.fillStyle = shade(base, (r() - 0.5) * 0.08)
+        if (horiz) g.fillRect(x + 1, y + 1, u * 2 - 2, u - 2)
+        else g.fillRect(x + 1, y + 1, u - 2, u * 2 - 2)
+        g.fillStyle = shade(base, (r() - 0.5) * 0.08)
+        if (horiz) g.fillRect(x + 1, y + u + 1, u * 2 - 2, u - 2)
+        else g.fillRect(x + u + 1, y + 1, u - 2, u * 2 - 2)
+      }
+    }
+  })
+}
+
+/** Corrugated kraft cardboard, for the inside of an opened box. */
+export function cardboard(base = '#c9a273', seed = 7): THREE.CanvasTexture {
+  return canvas(512, (g, s) => {
+    const r = rng(seed)
+    g.fillStyle = base
+    g.fillRect(0, 0, s, s)
+    for (let x = 0; x < s; x += 8) {
+      g.fillStyle = 'rgba(120,80,40,0.08)'
+      g.fillRect(x, 0, 3, s)
+    }
+    for (let k = 0; k < 2400; k++) {
+      g.fillStyle = `rgba(90,60,30,${r() * 0.06})`
+      g.fillRect(r() * s, r() * s, 2 + r() * 6, 1)
+    }
+  })
+}
+
+/** Large pale tiles for campus grounds. */
+export function tiles(base = '#ece8df', seed = 8, n = 4): THREE.CanvasTexture {
+  return paving(base, seed, n)
 }

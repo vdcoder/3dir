@@ -22,7 +22,7 @@ const QUICK = ['Desktop', 'Documents', 'Downloads', 'Pictures', 'Projects']
 
 function FolderTree() {
   const ref = useRef<HTMLDivElement>(null)
-  const folderId = useStore((s) => s.explorer.folderId)
+  const folderId = useStore((s) => s.explorer.location)
   const oneDrive = fs.children(DEMO_HOME_ID).find((n) => n.type === 'folder' && n.name.startsWith('OneDrive'))
   const quick = QUICK.map((q) => fs.children(DEMO_HOME_ID).find((n) => n.name === q)).filter((n): n is FsNode => !!n)
 
@@ -44,7 +44,7 @@ function FolderTree() {
 }
 
 function QuickRow({ node }: { node: FsNode }) {
-  const current = useStore((s) => s.explorer.folderId === node.id)
+  const current = useStore((s) => s.explorer.location === node.id)
   return (
     <div className={'tree-row' + (current ? ' current' : '')} style={{ paddingLeft: 22 }} onClick={() => useStore.getState().explorerOpen(node.id)} title={fs.path(node.id)}>
       <NodeIcon node={node} size={16} />
@@ -56,7 +56,7 @@ function QuickRow({ node }: { node: FsNode }) {
 function TreeNode({ id, depth }: { id: NodeId; depth: number }) {
   const node = fs.get(id)!
   const open = useStore((s) => s.explorer.expanded.includes(id))
-  const current = useStore((s) => s.explorer.folderId === id)
+  const current = useStore((s) => s.explorer.location === id)
   const subfolders = fs.children(id).filter((n) => n.type === 'folder')
   const { toggleExpanded, explorerOpen } = useStore.getState()
 
@@ -91,9 +91,9 @@ function TreeNode({ id, depth }: { id: NodeId; depth: number }) {
 // ---------- File list ----------
 
 function FileList() {
-  const folderId = useStore((s) => s.explorer.folderId)
+  const folderId = useStore((s) => s.explorer.location)
   const selectedId = useStore((s) => s.explorer.selectedId)
-  const { explorerSelect, explorerOpen, explorerUp, openPreview } = useStore.getState()
+  const { explorerSelect, explorerOpen, up, openPreview } = useStore.getState()
   const items = fs.children(folderId)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -108,7 +108,7 @@ function FileList() {
     if (e.key === 'ArrowDown') { e.preventDefault(); const n = items[Math.min(i + 1, items.length - 1)]; if (n) explorerSelect(n.id) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); const n = items[Math.max(i - 1, 0)]; if (n) explorerSelect(n.id) }
     else if (e.key === 'Enter' && i >= 0) activate(items[i])
-    else if (e.key === 'Backspace') explorerUp()
+    else if (e.key === 'Backspace') up('explorer')
   }
 
   return (

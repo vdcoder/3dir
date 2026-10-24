@@ -3,16 +3,17 @@ Your files. Your world. — A spatial file explorer and organization system.
 
 **Live demo: <https://vdcoder.github.io/3dir/>** (all data is fictional).
 
-3dir shows an ordinary Windows computer as a miniature town next to a familiar explorer. Districts are the
-main areas of the disk, open-roof buildings are important folders, rooms and shelves are the folders inside,
-and every file is a colored object you can select, preview and find in both views. Important destinations
-deep in the folder tree are pinned on the map, so you can see them, and go to them, from the very top.
+3dir shows an ordinary Windows computer as a miniature town next to a familiar explorer. Important folders
+become **areas** you can see from the top of the drive; the folders around them become the **geography** that
+holds them (a district, a block, a fenced yard, a brick square), so you always see where something really
+lives. Inside an area, folders are buildings, rooms, shelves and boxes, and every file is an object you can
+select, preview and find in both views. Any closed box opens into a world of its own, at any depth.
 
-![The C: drive as a miniature town](docs/progress/2026-10-24-flagship/overview.jpg)
+![The C: drive: the AmandaMedicalMiami campus at the front, inside its real parent folders](docs/progress/2026-10-24-iteration2/overview.jpg)
 
-| Alder & Finch business district | Kyoto photo wall | Finding the FY2027 budget |
+| AmandaMedicalMiami campus | Its Finance building | Inside a box, ten folders deep |
 | --- | --- | --- |
-| ![](docs/progress/2026-10-24-flagship/business.jpg) | ![](docs/progress/2026-10-24-flagship/kyoto-photo.jpg) | ![](docs/progress/2026-10-24-flagship/budget-file.jpg) |
+| ![](docs/progress/2026-10-24-iteration2/amm-campus.jpg) | ![](docs/progress/2026-10-24-iteration2/amm-finance.jpg) | ![](docs/progress/2026-10-24-iteration2/amm-box.jpg) |
 
 The product spec is [`docs/PROTOTYPE_CHARTER.md`](docs/PROTOTYPE_CHARTER.md); status, known limitations and
 budget are in [`docs/PROGRESS.md`](docs/PROGRESS.md); asset sources, licenses and credits in
@@ -20,14 +21,19 @@ budget are in [`docs/PROGRESS.md`](docs/PROGRESS.md); asset sources, licenses an
 
 ## A three-minute tour
 
-1. Open the demo: the whole C: drive as a town. The business archive, studio and photo gallery are up
-   front; Users and Windows & Programs sit quietly at the back.
-2. Notice the ★ pins: *FY2027 Budget* lives five folders deep, but it's visible from here. Click it.
-3. You're inside the green Finance hall, at the FY2027 shelf. Click a binder: its name, path, size and a
-   preview of the spreadsheet appear, and the explorer on the left shows the same file selected.
-4. In the explorer, click another file. The world outlines it without moving the camera; if it's out of
-   view, a blue pointer at the edge says where. Press **Show in World** to fly there.
-5. Search for "Kyoto" and pick a photo: the gallery's Kyoto wall, with real pictures, and a full-size preview.
+1. Open the demo: the whole C: drive. At the front is the teal **★ AmandaMedicalMiami** campus. Its label shows
+   where it really is (Users › Amanda › Documents › Business), and you can see that on the ground too: the
+   brick Business square, inside the fenced Documents yard, inside Amanda's block, inside the Users district.
+2. Double-click the campus. Four buildings around a plaza: Finance, Clients, Legal, Operations.
+   Click a room or a binder: it's selected in both views, and nothing moves.
+3. Press **↑ Up** a few times: Business, Documents, Amanda. Up always means "the folder that contains this one".
+   Press **←** to go back through the places you actually visited.
+4. Search for "Hurricane pre-staging" and pick the result. The file is ten folders down, inside a closed box
+   (`…\Clients\Biscayne Senior Living\Orders\2026\Q3`); its tag says so. Double-click the box to go inside:
+   a world of its own, on a cardboard floor, and the breadcrumb says "Inside a box". **↑ Up** takes you back out
+   to its shelf.
+5. Notice the ★ pins on the overview: *FY2027 Budget* lives five folders deep in Amanda's OneDrive, but you can
+   see it, and go to it, from the top.
 6. Press **Overview** to return to the whole map.
 
 ## Run it
@@ -48,10 +54,11 @@ Live demo: <https://vdcoder.github.io/3dir/> (every push to `main` deploys autom
 ## Using it
 
 - **Explorer (left):** familiar folder tree, file list, address bar, back/forward/up, search.
-- **World (right):** drag to pan, right-drag to rotate, scroll to zoom. Click to select, double-click to enter
-  a place or open a file, click a ★ pin to go to it. "↑ Up" and "Overview" are in the top-right corner;
-  the "?" button in the bottom-left reopens the short guide and color legend.
-- **Linked navigation** (top bar) keeps both views in step. Turn it off to explore them independently;
+- **World (right):** drag to pan, right-drag to rotate, scroll to zoom. Click to select; double-click to go into a
+  folder (a building, a room, a shelf or a closed box) or open a file; click a ★ pin to go to it.
+- **Back / Forward** step through places you visited. **↑ Up** goes to the containing folder, even out of a box.
+  **Overview** returns to C:. Selecting something never moves you.
+- **Linked navigation** (top bar) keeps both views in the same place. Turn it off to explore them independently;
   **Show in World** and **Show in Explorer** always work.
 
 ## Generating 3D assets (Meshy)
@@ -71,9 +78,15 @@ Every paid call is logged in `assets-src/meshy/assets.jsonl`. See `docs/ASSETS.m
 
 - `src/data` — the fictional computer (authoring format, compiler, seed content)
 - `src/model` — canonical filesystem types and index (no 3D)
-- `src/mapping` — how nodes are placed in the world (curated plan, importance, layout engine)
-- `src/state` — selection / current folder / world focus rules and the store
+- `src/mapping` — the Spatial Compiler, from folders to places (no rendering):
+  - `plan.ts` curated importance, themes and pins; `importance.ts` rules for everything else
+  - `areaPlanner.ts` Stage 1a: which folders become areas, and the regions (their real ancestors) around them
+  - `geography.ts` Stage 1b: nested, non-overlapping rectangles for regions, areas and roads
+  - `areaRenderer.ts` Stage 2: any folder as buildings, rooms, shelves, sections, files and boxes
+  - `world.ts` the main map and on-demand box-worlds; which world shows any folder
+  - `decor.ts` decorative props, never pickable
+- `src/state` — navigation rules (location, history, selection per view) and the store
 - `src/ui` — the 2D explorer
-- `src/scene` — the 3D world (React Three Fiber)
+- `src/scene` — the 3D world (React Three Fiber); `pickPolicy.ts` + `picking.tsx` decide what a click means
 - `tools/` — asset tooling; `tests/e2e/` — browser tests and screenshot scenarios
 - `experiments/` — throwaway proofs, not part of the app
