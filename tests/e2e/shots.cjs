@@ -22,8 +22,17 @@ const go = (path, how = 'worldEnter') => async (page) => {
   await page.waitForTimeout(2200)
 }
 
+const AMM = 'C:\\Users\\Amanda\\Documents\\Business\\AmandaMedicalMiami'
 const SCENARIOS = {
   overview: async () => {},
+  amanda: go('C:\\Users\\Amanda'),
+  documents: go('C:\\Users\\Amanda\\Documents'),
+  'amm-campus': go(AMM),
+  'amm-finance': go(`${AMM}\\Finance`),
+  'amm-clients': go(`${AMM}\\Clients`),
+  'amm-box': go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3`),
+  'amm-deep': go(`${AMM}\\Clients\\Biscayne Senior Living\\Orders\\2026\\Q3\\Delivery confirmations`),
+  'chrome-box': go('C:\\Program Files\\Google\\Chrome\\Application\\155.0.7610.88'),
   business: go(ONEDRIVE),
   finance: go(`${ONEDRIVE}\\Finance`),
   budgets: go(`${ONEDRIVE}\\Finance\\Budgets`),

@@ -5,10 +5,20 @@ import { planDecor, type Decor } from '../mapping/decor'
 import { PROPS, type PropId } from '../mapping/props'
 import { fs } from '../state/store'
 import { assetUrl } from '../assetUrl'
-import { layout } from './worldData'
+import type { WorldLayout } from '../mapping/types'
+import { useLayout } from './worldData'
 import { refreshShadows } from './shadows'
 
-export const decor: Decor[] = planDecor(layout, (id) => fs.get(id)?.name ?? '')
+const decorCache = new WeakMap<WorldLayout, Decor[]>()
+/** Decor for a world, planned once per world. */
+export function decorFor(layout: WorldLayout): Decor[] {
+  let d = decorCache.get(layout)
+  if (!d) {
+    d = planDecor(layout, (id) => fs.get(id)?.name ?? '')
+    decorCache.set(layout, d)
+  }
+  return d
+}
 
 const noRaycast = () => null
 
@@ -62,11 +72,12 @@ function PartInstances({ part, items }: { part: { geometry: THREE.BufferGeometry
 }
 
 export function Props() {
+  const layout = useLayout()
   const groups = useMemo(() => {
     const m = new Map<PropId, Decor[]>()
-    for (const d of decor) m.set(d.prop, [...(m.get(d.prop) ?? []), d])
+    for (const d of decorFor(layout)) m.set(d.prop, [...(m.get(d.prop) ?? []), d])
     return [...m]
-  }, [])
+  }, [layout])
   return (
     <>
       {groups.map(([id, items]) => (

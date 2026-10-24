@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
 import CameraControlsImpl from 'camera-controls'
 import * as THREE from 'three'
-import type { AABB } from '../mapping/layout'
+import type { AABB } from '../mapping/types'
 import { useStore } from '../state/store'
-import { anchorOf, layout } from './worldData'
+import { useLayout } from './worldData'
 
 const DEFAULT_AZIMUTH = 0.42 // radians from +Z (camera looks from the south, slightly east)
 const OVERVIEW_POLAR = 0.86
@@ -43,20 +43,53 @@ function frame(controls: CameraControlsImpl, camera: THREE.PerspectiveCamera, b:
 
 export function CameraRig() {
   const ref = useRef<CameraControlsImpl>(null)
+  const layout = useLayout()
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
-  const frameNonce = useStore((s) => s.world.frameNonce)
-  const frameId = useStore((s) => s.world.frameId)
-  const first = useRef(true)
   const size = useThree((s) => s.size)
+  const frameNonce = useStore((s) => s.world.frameNonce)
+  const mounted = useRef(false)
   const touched = useRef(false)
 
-  // Initial overview (re-fit when the canvas size settles, until the user moves the camera).
-  useEffect(() => {
+  const target = useCallback((smooth: boolean) => {
     const c = ref.current
-    if (!c || touched.current || size.width === 0) return
-    const l = layout.land
-    frame(c, camera, { min: [l.x + 4, 0, l.z + 4], max: [l.x + l.w - 4, 3, l.z + l.d - 4] }, OVERVIEW_POLAR, false, DEFAULT_AZIMUTH, 0.94)
-  }, [camera, size.width, size.height])
+    if (!c) return
+    const { frameId, location } = useStore.getState().world
+    const a = layout.anchors.get(frameId) ?? layout.anchors.get(location)
+    const g = layout.ground
+    if (!a || a.level === 'land') {
+      frame(c, camera, { min: [g.x + 4, 0, g.z + 4], max: [g.x + g.w - 4, 3, g.z + g.d - 4] }, OVERVIEW_POLAR, smooth, smooth ? undefined : DEFAULT_AZIMUTH, 0.94)
+      return
+    }
+    // Small things (single files, boxes) are framed with some context around them.
+    const b = (layout.anchors.get(a.shownAs) ?? a).bounds
+    const minSize = a.level === 'item' || a.level === 'box' ? 3.6 : a.level === 'compartment' ? 3.4 : 0
+    const grown: AABB = minSize
+      ? {
+          min: [Math.min(b.min[0], (b.min[0] + b.max[0]) / 2 - minSize / 2), b.min[1], Math.min(b.min[2], (b.min[2] + b.max[2]) / 2 - minSize / 2)],
+          max: [Math.max(b.max[0], (b.min[0] + b.max[0]) / 2 + minSize / 2), b.max[1], Math.max(b.max[2], (b.min[2] + b.max[2]) / 2 + minSize / 2)],
+        }
+      : b
+    const wide = a.level === 'region' || a.level === 'area'
+    frame(c, camera, grown, wide ? OVERVIEW_POLAR - 0.04 : a.level === 'item' || a.level === 'box' ? 0.72 : CLOSE_POLAR, smooth, smooth ? undefined : DEFAULT_AZIMUTH)
+  }, [layout, camera])
+
+  // Entering a world (first load, opening or leaving a box): cut straight to the target.
+  useEffect(() => {
+    if (size.width === 0) return
+    if (mounted.current && touched.current) return
+    target(false)
+  }, [target, size.width, size.height])
+  useEffect(() => { mounted.current = true }, [])
+
+  // Moves within a world (navigation, Show in World, search): glide.
+  const lastNonce = useRef(frameNonce)
+  useEffect(() => {
+    if (frameNonce === lastNonce.current) return
+    lastNonce.current = frameNonce
+    touched.current = true
+    target(true)
+  }, [frameNonce, target])
+
   useEffect(() => {
     const c = ref.current
     if (!c) return
@@ -65,37 +98,13 @@ export function CameraRig() {
     return () => c.removeEventListener('controlstart', onStart)
   }, [])
 
-  // Explicit framing requests (entering folders, Show in World, search).
-  useEffect(() => {
-    if (first.current) { first.current = false; return }
-    const c = ref.current
-    const a = anchorOf(frameId)
-    if (!c || !a) return
-    touched.current = true
-    if (a.level === 'land') {
-      const l = layout.land
-      frame(c, camera, { min: [l.x + 4, 0, l.z + 4], max: [l.x + l.w - 4, 3, l.z + l.d - 4] }, OVERVIEW_POLAR, true, undefined, 0.94)
-      return
-    }
-    // Small things (single files, boxes) are framed with some context around them.
-    const b = a.bounds
-    const minSize = a.level === 'item' || a.level === 'box' ? 3.6 : a.level === 'compartment' ? 3.4 : 0
-    const grown: AABB = minSize
-      ? {
-          min: [Math.min(b.min[0], (b.min[0] + b.max[0]) / 2 - minSize / 2), b.min[1], Math.min(b.min[2], (b.min[2] + b.max[2]) / 2 - minSize / 2)],
-          max: [Math.max(b.max[0], (b.min[0] + b.max[0]) / 2 + minSize / 2), b.max[1], Math.max(b.max[2], (b.min[2] + b.max[2]) / 2 + minSize / 2)],
-        }
-      : b
-    frame(c, camera, grown, a.level === 'district' ? OVERVIEW_POLAR - 0.04 : a.level === 'item' || a.level === 'box' ? 0.72 : CLOSE_POLAR, true)
-  }, [frameNonce, frameId, camera])
-
-  const l = layout.land
+  const g = layout.ground
   return (
     <CameraControls
       ref={ref}
       makeDefault
       minDistance={1.5}
-      maxDistance={Math.max(l.w, l.d) * 2.2}
+      maxDistance={Math.max(g.w, g.d) * 2.2}
       minPolarAngle={0.25}
       maxPolarAngle={1.22}
       smoothTime={0.45}
