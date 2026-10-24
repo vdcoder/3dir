@@ -1,5 +1,15 @@
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Suspense, useEffect } from 'react'
+import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
+import { assetUrl } from './assetUrl'
+
+function TestAsset() {
+  const { scene } = useGLTF(assetUrl('assets/library-pavilion.glb'))
+  useEffect(() => {
+    ;(window as unknown as { __appReady: boolean }).__appReady = true
+  }, [])
+  return <primitive object={scene} />
+}
 
 // Placeholder shell for the foundation milestone. The real layout, explorer
 // and world arrive once the product decisions are made.
@@ -14,10 +24,11 @@ export function App() {
           <color attach="background" args={['#f2f2f2']} />
           <ambientLight intensity={0.6} />
           <directionalLight position={[3, 5, 2]} intensity={1.5} />
-          <mesh>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#8899aa" />
-          </mesh>
+          <Suspense fallback={null}>
+            <Bounds fit clip margin={1.4}>
+              <TestAsset />
+            </Bounds>
+          </Suspense>
           <OrbitControls makeDefault />
         </Canvas>
       </main>
