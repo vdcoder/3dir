@@ -45,6 +45,7 @@ function buildCandidates(layout: WorldLayout): Candidate[] {
   }
   for (const a of layout.areas) {
     if (regionIds.has(a.nodeId)) continue // a residual area is named by its region
+    if (layout.context.kind === 'main' && a.nodeId === layout.context.rootId) continue // the land itself is the drive
     const promoted = a.prominence === 'campus' || a.prominence === 'major'
     out.push({
       key: 'a:' + a.nodeId, nodeId: a.nodeId, level: 'area', text: (a.prominence === 'campus' ? '★ ' : '') + fs.get(a.nodeId)!.name,
@@ -170,6 +171,8 @@ export function LabelUpdater() {
   const loc = useStore((s) => s.world.location)
   const rev = useStore((s) => s.revealMode)
   useEffect(() => { invalidate() }, [sel, hov, loc, rev, invalidate])
+  // Text widths change once the web font arrives: measure again.
+  useEffect(() => { void document.fonts.ready.then(() => { bus.sizes.clear(); invalidate() }) }, [bus, invalidate])
 
   useFrame(({ camera, size }) => {
     const { world, hoverId, revealMode } = useStore.getState()
@@ -198,12 +201,15 @@ export function LabelUpdater() {
       visible.push({ c, x, y, score: c.priority + (special ? 1000 : 0) + (inHere ? 20 : 0) })
     }
     visible.sort((a, b) => b.score - a.score)
-    for (const { c, x, y, score } of visible) {
+    for (const { c, x: ax, y, score } of visible) {
       const el = bus.refs.get(c.key)!
       el.style.display = 'block'
       let wh = bus.sizes.get(c.key)
-      if (!wh) { wh = [el.offsetWidth, el.offsetHeight]; bus.sizes.set(c.key, wh) }
+      // Measure once it has real size (a label measured while hidden reads 0x0 and would never collide).
+      if (!wh || !wh[0]) { wh = [el.offsetWidth, el.offsetHeight]; if (wh[0]) bus.sizes.set(c.key, wh) }
       const [w, h] = wh
+      // Region names start just right of their corner; others center on their anchor.
+      const x = c.level === 'region' ? ax + w / 2 + 10 : ax
       // Important labels may shift a little to dodge others before giving up: [dx, lift].
       const tries: [number, number][] = c.level === 'region' || c.level === 'area'
         ? [[0, 0], [0, -h - 6], [0, h * 0.6], [0, h + 8], [0, -2 * h - 12]]

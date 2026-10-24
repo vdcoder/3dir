@@ -223,5 +223,25 @@ export function planDecor(layout: WorldLayout, nameOf: (id: NodeId) => string): 
     }
   }
 
-  return [...outdoor.decor, ...indoor.decor, ...streets.decor, ...park.decor]
+  // ---------- Grounds: trees on the open lawn left inside districts and blocks ----------
+  const grounds = new Planner([...streets.obstacles, ...roadBoxes])
+  for (const r of layout.regions) {
+    if (r.metaphor !== 'district' && r.metaphor !== 'block') continue
+    const inner = fromRect(r.rect, -1.6)
+    const own = fromRect(r.rect)
+    // Nested regions are someone else's ground.
+    const nested = layout.regions.filter((q) => q !== r && inside(fromRect(q.rect), own)).map((q) => fromRect(q.rect, 1.2))
+    for (let x = inner.x0 + 2; x < inner.x1 - 2; x += 7) {
+      for (let z = inner.z0 + 2; z < inner.z1 - 2; z += 7) {
+        const key = `g${Math.round(x)}:${Math.round(z)}`
+        const jx = x + (rand(key) - 0.5) * 3.5
+        const jz = z + (rand(key + 'z') - 0.5) * 3.5
+        const prop: PropId = rand(key + 'k') < 0.2 ? 'tree-cypress' : 'tree-round'
+        if (nested.some((b) => hits(b, propBox(prop, jx, jz, 0, 0.8)))) continue
+        grounds.place(prop, jx, jz, rand(key + 'r') * 6.28, { within: inner, pad: 0.8 })
+      }
+    }
+  }
+
+  return [...outdoor.decor, ...indoor.decor, ...streets.decor, ...park.decor, ...grounds.decor]
 }

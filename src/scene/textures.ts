@@ -92,6 +92,19 @@ export function grass(base: string, seed = 3): THREE.CanvasTexture {
   })
 }
 
+/** Mown lawn: grass with soft alternating stripes. */
+export function lawn(base: string, seed = 6, stripes = 4): THREE.CanvasTexture {
+  const g0 = grass(base, seed).image as HTMLCanvasElement
+  return canvas(512, (g, s) => {
+    g.drawImage(g0, 0, 0, s, s)
+    const t = s / stripes
+    for (let i = 0; i < stripes; i += 2) {
+      g.fillStyle = 'rgba(255,255,255,0.06)'
+      g.fillRect(i * t, 0, t, s)
+    }
+  })
+}
+
 /** Polished terrazzo / concrete speckle. */
 export function terrazzo(base: string, seed = 4): THREE.CanvasTexture {
   return canvas(512, (g, s) => {

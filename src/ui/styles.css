@@ -198,7 +198,7 @@ button { font: inherit; color: inherit; }
 .world-stage { position: absolute; inset: 0; }
 .world-stage.world-box-warm { background: radial-gradient(120% 90% at 50% 35%, #f7efe2 0%, #eadcc6 60%, #dccab0 100%); }
 .world-stage.world-box-cool { background: radial-gradient(120% 90% at 50% 35%, #f1f4f6 0%, #e1e6ea 60%, #cfd6dc 100%); }
-.wl-region { margin-left: 46px; padding: 3px 10px 4px; background: rgb(255 255 255 / 90%); border-radius: 6px; font-size: 12px; font-weight: 650; color: var(--text); box-shadow: 0 1px 5px rgb(0 0 0 / 12%); border-left: 4px solid #8a8a8a; }
+.wl-region { padding: 3px 10px 4px; background: rgb(255 255 255 / 90%); border-radius: 6px; font-size: 12px; font-weight: 650; color: var(--text); box-shadow: 0 1px 5px rgb(0 0 0 / 12%); border-left: 4px solid #8a8a8a; }
 .wl-region-district { font-size: 14px; border-left-color: #3d4650; }
 .wl-region-block { border-left-color: #6f8f55; }
 .wl-region-yard { border-left-color: #8c8274; }

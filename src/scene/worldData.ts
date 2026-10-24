@@ -44,7 +44,7 @@ export const LAND = { grass: '#b5c79a', base: '#7d6a55', baseTop: '#a08a70', pat
 
 /** Ground and border look of each absorber metaphor (Stage 1 geography). */
 export const REGION_LOOK: Record<AbsorberMetaphor, { floor: string; border: string; sign: string }> = {
-  district: { floor: '#9a9c9a', border: '#d8d4cb', sign: '#3d4650' },
+  district: { floor: '#a3b987', border: '#d8d4cb', sign: '#3d4650' },
   block: { floor: '#cfd8bd', border: '#e4e0d6', sign: '#4b5a3c' },
   yard: { floor: '#d6d4cf', border: '#8c8274', sign: '#5d5348' },
   square: { floor: '#b9785e', border: '#9b5a44', sign: '#6d3b2a' },

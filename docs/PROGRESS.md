@@ -4,52 +4,95 @@ Authoritative product spec: [`docs/PROTOTYPE_CHARTER.md`](PROTOTYPE_CHARTER.md).
 
 Live demo: <https://vdcoder.github.io/3dir/> (deployed automatically from `main`).
 
-## Current status (2026-10-24, flagship checkpoint)
+## Current status (2026-10-24, iteration 2: milestones A and B)
+
+### What the review findings turned out to be
+Reproduced before changing anything (see `src/state/navigation.test.ts`, first five cases):
+- **Selecting in the world navigated.** A world click moved the explorer to the clicked thing's folder and pushed
+  a history entry, so **Up** worked from the wrong folder and **Back** replayed clicks rather than places.
+- **Up from a promoted district jumped across the map** (OneDrive → Amanda's house), because promoted districts
+  were cut out of their real ancestors and placed at the top level.
+- **Deep folders dead-ended.** Below a building's shelves, folders became closed boxes you could not open
+  (for example `C:\Program Files\Google\Chrome\Application\155.0.7610.88`).
+- **Picking was per-mesh.** Each mesh handled its own clicks, so shelves, room floors and HTML labels could
+  each claim the click, and decorations could block it.
 
 ### Completed
-- **Asset pipeline** and **GitHub Pages deployment** (every push to `main` is checked, built and published).
-- **Synthetic computer**: 260 folders, 843 files, consistent business figures, text/table/image previews.
-- **2D explorer**: tree with Quick access, file list with keyboard control, back/forward/up, address bar,
-  search (names and preview content), details card with canonical path, preview and Open.
-- **Spatial explorer**:
-  - Deterministic layout engine: land → districts → open-roof buildings → rooms → shelves / tables /
-    photo walls → files. Same layout every visit.
-  - **Promotion**: the OneDrive business archive, Projects + Documents and Pictures appear as districts on
-    the C:\ map, with their real paths on their signs and signposts at Amanda's house pointing to them.
-  - **Landmark pins** expose important deep destinations from the overview: FY2027 Budget, Q3 2026 Reports,
-    Oakridge Hotels, Kyoto 2026, Garden Planner App.
-  - **Flagship district (Alder & Finch)**: signature-color buildings (Finance green, Contracts oxblood,
-    Operations slate, Board brass, Strategy teal), cornices, pilasters, windows, lettered entrance signs,
-    plaza with fountain, benches, trees, lamps and a clock tower; desks, boardroom table, vault, easels,
-    delivery van and forklift.
-  - **Gallery**: albums hang as photo walls with 40 generated photographs (Kyoto, Lisbon, graduation, garden);
-    the same photos appear in the 2D preview. Ring sculpture outside.
-  - **Studio**: project rooms with workbenches and drafting tables.
-  - Dollhouse cutaway (walls facing the camera drop to a sill), ambient occlusion, soft shadows rendered on
-    demand, textured floors and paving, ranked labels with collision avoidance.
-- **Demo polish**: first-visit guide with a file-color legend (reopen with "?"), loading screen, one-click
-  pins, Esc closes previews, narrower layout on smaller screens, favicon, README tour with screenshots.
-- **Synchronization** as approved, plus an **off-screen indicator**: selecting something out of view never moves
-  the camera; an edge pointer names it and shows it on click. Files inside closed archive boxes are tagged.
+- **Milestone A, navigation correctness**
+  - Each view has its own **location, history and selection** (shared while linked). Selecting never navigates.
+  - **Back / Forward** walk visited places only. **Up** is always the canonical parent. **Overview** returns to C:
+    and is itself a history step. Linking adopts the world's place without moving the camera.
+  - **Every folder is navigable at any depth.** Double-clicking a closed box opens a **box-world**: the same
+    renderer rooted at that folder, on a cardboard floor with warmer or cooler light by depth, built on demand.
+    The breadcrumb says "Inside a box" and marks the box edge with ▣. No depth limit.
+  - **One picking policy** for the whole world: a single raycast, decorations and highlights never intercept,
+    the nearest hit wins unless a more specific canonical descendant is hit within reach (a binder in front of
+    its shelf, a shelf section rather than the room). Labels and geometry resolve to the same folder.
+    Double-click on a folder opens that folder, not its shelf.
+- **Milestone B, Spatial Compiler α.v1** (`src/mapping`)
+  - **Stage 1a, area planner** (`areaPlanner.ts`): curated importance promotes folders into **areas**
+    (campus ≥ 0.95, major ≥ 0.75). Their ancestors become **absorber regions** by depth: district (curbs and
+    highway), block (sidewalk ring and street), yard (fence with gate), square (brick wall), garden (hedge),
+    court (wall). Everything else stays in **residual areas** of its real parent. No folder is invented,
+    duplicated or moved out of its ancestors.
+  - **Stage 1b, geography** (`geography.ts`): nested, non-overlapping, deterministic rectangles. The branch that
+    holds the most important area takes the front; quiet areas recede to the back of their row.
+  - **Stage 2, area renderer** (`areaRenderer.ts`): any folder as a compound of buildings → rooms → shelves,
+    tables and photo walls → sections → files and boxes. Campuses get a courtyard and plaza. No second promotion.
+  - **Worlds** (`world.ts`): the main map plus box-worlds; `WorldCatalog` knows which world shows any folder
+    open, and the chain of boxes to get there.
+- **AmandaMedicalMiami** (`C:\Users\Amanda\Documents\Business\AmandaMedicalMiami`): 80 folders, 221 files,
+  Finance, Operations, Legal and Clients. It is the campus at the front of the C: map, inside the Business
+  square, inside the Documents yard, inside Amanda's block, inside the Users district: its real ancestry is
+  visible from the overview. Signature colors per building, fountain, clock tower, benches, delivery van.
+- Free lawn inside districts and blocks is planted with trees, so leftover ground reads as parkland.
+- Dataset: 343 folders, 1,074 files, up to 12 levels deep; 21 folders are reached through box-worlds.
 
 ### Tested
-- Unit (32): filesystem index, navigation rules, layout invariants, dataset consistency.
-- Browser: `npm run test:e2e` (also under `/3dir/`: all 19 prop models and 40 photos load) and
-  `npm run test:interactions` (23 checks: guide, pins, tree, list, double-click, linked on/off, Show in World,
-  search, world click, off-screen indicator, Up, Overview).
-- Screenshots: `docs/progress/2026-10-24-flagship/`.
+- Unit (60): filesystem index; navigation (12, including the reproduced bugs); picking policy (8); compiler
+  (15: absorber metaphors, campus, residual areas, every folder placed exactly once, no invented folders,
+  containment, no overlaps, front placement, determinism, **no dead ends**, every file visible somewhere,
+  the deep Chrome path, box entry changes world but not folder); dataset consistency.
+- Browser: `npm run test:e2e` (also under `/3dir/`: 19 models and 40 photos load) and
+  `npm run test:interactions` (25 checks: guide, pins, tree, list, world click selects without navigating or
+  touching history, binder-not-shelf picking, Up canonical, Back/Forward, deep Chrome folder, double-click a box
+  opens its box-world, Up leaves it, Back re-enters it, unlinked independence, Show in World, search,
+  off-screen indicator, Overview).
+
+### Before / after
+Before: `docs/progress/2026-10-24-flagship/`. After: `docs/progress/2026-10-24-iteration2/`.
+
+| | Before | After |
+| --- | --- | --- |
+| C: overview | ![](progress/2026-10-24-flagship/overview.jpg) | ![](progress/2026-10-24-iteration2/overview.jpg) |
+| | Invented groupings ("Windows & Programs", "Projects & Documents Studio"); promoted districts detached from their parents | Only real folders; AmandaMedicalMiami campus nested in Business › Documents › Amanda › Users |
+| Inside | ![](progress/2026-10-24-flagship/business.jpg) | ![](progress/2026-10-24-iteration2/amm-campus.jpg) |
+| Deep folder | dead end (closed box) | ![](progress/2026-10-24-iteration2/chrome-box.jpg) |
+
+Also: `amm-finance`, `amm-clients`, `amm-box` (…\Clients\Biscayne Senior Living\Orders\2026\Q3), `amanda`,
+`documents`.
 
 ### Broken / unfinished / known limitations
-- Users' homes and the Windows & Programs district use the generic look (by design: quieter), but the
-  homes could be cozier.
-- Labels can still crowd at some angles in dense areas; lower-priority labels hide rather than overlap.
-- Some albums (Camera Roll, Screenshots, Holidays, Home) show palette gradients instead of photos.
-- Performance verified only in headless software rendering (slow but correct); a real GPU should be smooth.
-- No alternate visual configuration (the charter's optional second view) and no first-person camera (optional).
+- **Milestone C not started:** the top bar and the world corner both have back/forward/up; the details card
+  still floats over the world; Alt reveal mode exists in state but has no key yet; the first-visit guide covers
+  part of the map.
+- **Milestone D not started:** file kinds still rely on color and a legend; camera framing in box-worlds is
+  too far out; the clock tower and trees can stand between the camera and a framed building.
+- Region signs give way to more important labels when they collide (by design), so some regions are named
+  only by their sign on the ground and in the campus label's path.
+- Performance verified only in headless software rendering (slow but correct).
 
 ### Next
-1. Owner review of the live demo on a real GPU; tune lighting, label density and camera speeds from feedback.
-2. Optional: cozier homes, more gallery photos, an alternate visual configuration (423 credits remain).
+1. **Milestone C:** one set of navigation controls while linked (independent ones when unlinked); a docked,
+   collapsible inspector in place of the floating details card; hover and selection action hints; Alt held
+   for reveal mode; a guide that doesn't cover the map.
+2. **Milestone D:** recognizable file forms (not color alone), signage and landmarks, area variety, label
+   density and camera framing (box-worlds, occluders).
+
+## Earlier checkpoints
+- **Iteration 1 (flagship, accepted):** synthetic computer, 2D explorer, spatial world with the Alder & Finch
+  business district, studio, gallery with 40 photos, pins, off-screen indicator, Pages deployment. Screenshots:
+  `docs/progress/2026-10-24-flagship/`.
 
 ## Repeatable test steps
 
@@ -59,9 +102,9 @@ npm run typecheck
 npm test                    # unit tests
 npm run build
 npm run test:e2e            # smoke test (BASE_PATH=/3dir/ to test the Pages build)
-npm run test:interactions   # explorer/world synchronization checks
-npm run shots -- <outDir> [overview business finance budgets budget-file contracts board operations
-                           q3-report studio kyoto-photo gallery users system]
+npm run test:interactions   # navigation, picking and explorer/world synchronization
+npm run shots -- <outDir> [overview amanda documents amm-campus amm-finance amm-clients amm-box chrome-box
+                           first-visit business finance budgets budget-file ...]
 ```
 
 ## Budget
@@ -72,4 +115,4 @@ npm run shots -- <outDir> [overview business finance budgets budget-file contrac
 | Meshy credits, pipeline test | 30 | Yes |
 | Meshy credits, stage 2 (cap 900) | **477 used** (19 concepts 57, 19 props 300, 40 photos 120); 423 left | Yes |
 
-No other spending.
+Iteration 2 used no credits (generation on hold as instructed). No other spending.

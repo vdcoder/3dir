@@ -9,7 +9,7 @@ import { fs } from '../state/store'
 import { Boxes, type BoxSpec } from './Boxes'
 import { pickable } from './picking'
 import { refreshShadows } from './shadows'
-import { asphalt, brick, cardboard, grass, paving, planks, signTexture, terrazzo, tiles, worldMapMaterial } from './textures'
+import { asphalt, brick, cardboard, grass, lawn, paving, planks, signTexture, terrazzo, tiles, worldMapMaterial } from './textures'
 import { accentOf, LAND, PALETTE, REGION_LOOK, useLayout } from './worldData'
 
 const THEMES: ThemeId[] = ['business', 'medical', 'studio', 'gallery', 'home', 'system']
@@ -44,7 +44,7 @@ function makeSurfaces() {
     plaza: worldMapMaterial(paving('#efe8dc', 32, 4), 4, { roughness: 0.75 }),
     campus: worldMapMaterial(tiles('#f2efe8', 34, 3), 4.8, { roughness: 0.6 }),
     region: {
-      district: worldMapMaterial(asphalt('#9a9c9a', 41), 10, { roughness: 0.95 }),
+      district: worldMapMaterial(lawn('#a3b987', 41), 12, { roughness: 1 }),
       block: worldMapMaterial(grass('#c9d6b1', 42), 16, { roughness: 1 }),
       yard: worldMapMaterial(paving('#d8d6d1', 43, 3), 3.6, { roughness: 0.9 }),
       square: worldMapMaterial(brick('#b9785e', 44), 3.2, { roughness: 0.9 }),
