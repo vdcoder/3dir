@@ -21,9 +21,11 @@ export interface Panel {
   annotate?: (t: Transform) => string
   /** Draw children only this many levels below the root (default: all). */
   depth?: number
+  /** Skip what lies outside the panel or is smaller than a third of a pixel (for very large drawings). */
+  cull?: boolean
 }
 
-export interface Transform { X: (x: number) => number; Y: (y: number) => number; S: number }
+export interface Transform { X: (x: number) => number; Y: (y: number) => number; S: number; /** world rectangle in view (nodes outside it are skipped) */ view?: Rect }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -41,7 +43,14 @@ const ROLE: Record<string, string> = {
   boundary: '#dbe7cb', separator: '#d6d6d1', street: '#d4d4cf', path: '#eadfc7', courtyard: '#f5e3a8', plaza: '#f3dcae',
   wall: '#e4ded5', corridor: '#d6e6f5', entrance: '#fbe0cc', aisle: '#ebf3fa', spacing: '#f2eee7', clearance: '#f4f4ee',
   breathing: '#fff0c9', display: '#fde2bf', structure: '#7a5634', padding: '#eeeeea', open: '#f6f6f2',
+  // α.v3
+  feature: '#eef5e6', circulation: '#f7f6f1', walkway: '#efe4cf', ground: '#e2edd3', walk: '#e6d6b5', lobby: '#ece6dc',
 }
+const FURNITURE: Record<string, string> = {
+  chair: '#cdd3da', sofa: '#8fa7c0', armchair: '#aabdd0', 'coffee table': '#c8a97e', 'student desk': '#b5bcc5',
+  board: '#2f3b45', 'study table': '#c8a97e', 'side table': '#d2b48c', plant: '#5f9e5a',
+}
+const MARK = '#e8590c'
 const FAMILY: Record<string, string> = { highway: '#c4c4bf', street: '#d6d6d1', path: '#ece0c6', hedge: '#c9e0b8' }
 
 const BOOK = ['#2e8b57', '#3e6db5', '#c0392b', '#d9732b', '#8559c4', '#23898c', '#8b6a45', '#667085']
@@ -53,24 +62,44 @@ function label(x: number, y: number, s: string, size: number, opts: { weight?: n
 }
 
 function regionLabel(g: Region): string {
+  if (g.role === 'feature' || g.role === 'ground' || g.role === 'circulation') return g.label
   const t = g.axis === 'x' ? g.rect.w : g.axis === 'y' ? g.rect.d : Math.min(g.rect.w, g.rect.d)
   return `${g.label} ${fmt(t)} m`
 }
+
+const intersects = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.d && b.y <= a.y + a.d
 
 function drawNode(n: Placed, t: Transform, depth: number, maxDepth: number, out: string[]) {
   const r = n.rect
   const px = { x: t.X(r.x), y: t.Y(r.y), w: r.w * t.S, h: r.d * t.S }
   if (px.w < 0.4 || px.h < 0.4) return
+  if (t.view && !intersects(r, t.view)) return
   const k = KIND[n.kind] ?? KIND.room
   const rr = (q: Rect, fill: string, stroke = 'none', sw = 0, extra = '') => `<rect x="${t.X(q.x).toFixed(2)}" y="${t.Y(q.y).toFixed(2)}" width="${Math.max(0, q.w * t.S).toFixed(2)}" height="${Math.max(0, q.d * t.S).toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${extra}/>`
   if (k.fill !== 'none') out.push(rr(r, k.fill))
   if (n.kind === 'shelf' && n.meta?.body) out.push(rr(n.meta.body as Rect, '#e9d8c0', '#7a5634', 0.8))
   // The container's own space.
   for (const g of n.regions) {
+    if (t.view && ((g.rect.w * t.S < 0.33 && g.rect.d * t.S < 40) || g.rect.d * t.S < 0.33 || !intersects(g.rect, t.view))) continue
     const fill = g.family ? FAMILY[g.family] ?? ROLE.separator : ROLE[g.role] ?? ROLE.open
     out.push(rr(g.rect, fill, fill, 0.6))
   }
   for (const o of n.objects) {
+    if (t.view && !intersects(o.rect, t.view)) continue
+    if (o.kind === 'rail' || o.kind === 'connector') {
+      // Floor markings: dashed lines along the marking's long side.
+      const vert = o.rect.d >= o.rect.w
+      const cx = t.X(o.rect.x + o.rect.w / 2), cy = t.Y(o.rect.y + o.rect.d / 2)
+      const d = vert ? `M${cx.toFixed(2)},${t.Y(o.rect.y).toFixed(2)} V${t.Y(o.rect.y + o.rect.d).toFixed(2)}` : `M${t.X(o.rect.x).toFixed(2)},${cy.toFixed(2)} H${t.X(o.rect.x + o.rect.w).toFixed(2)}`
+      out.push(`<path d="${d}" stroke="${MARK}" stroke-width="${o.kind === 'rail' ? 1.6 : 1.2}" stroke-dasharray="${o.kind === 'rail' ? '5 3' : '2 2'}" fill="none"/>`)
+      continue
+    }
+    if (o.kind === 'marking-label') continue
+    if (FURNITURE[o.kind]) {
+      const round = o.kind === 'plant' || o.kind === 'chair' || o.kind === 'armchair'
+      out.push(rr(o.rect, FURNITURE[o.kind], '#6b7280', 0.4, round ? ` rx="${Math.min(o.rect.w, o.rect.d) * t.S * (o.kind === 'plant' ? 0.5 : 0.2)}"` : ''))
+      continue
+    }
     const fill = o.kind === 'book' ? BOOK[hash(o.label ?? '') % BOOK.length] : o.kind === 'table' ? '#d9b98a' : o.kind === 'file' ? '#ffffff' : o.kind === 'desk' ? '#a3acb6' : o.kind === 'sign' ? '#2f4a3a' : o.kind === 'door' || o.kind === 'gate' ? '#c25b2a' : '#999'
     out.push(rr(o.rect, fill, o.kind === 'file' ? '#9a8a70' : o.kind === 'table' ? '#8a6a40' : 'none', o.kind === 'file' || o.kind === 'table' ? 0.6 : 0))
     const ow = o.rect.w * t.S, oh = o.rect.d * t.S
@@ -93,6 +122,10 @@ function drawNode(n: Placed, t: Transform, depth: number, maxDepth: number, out:
       const x = front ? t.X(g.rect.x) + w - 6 : t.X(g.rect.x) + w / 2
       out.push(label(x, t.Y(g.rect.y) + h / 2 + size / 3, s, size, { anchor: front ? 'end' : 'middle', fill: '#6d675e', italic: true }))
     } else if (h > textW(s, size) + 6 && w > size + 4) out.push(`<text transform="translate(${(t.X(g.rect.x) + w / 2 + size / 3).toFixed(1)},${(t.Y(g.rect.y) + h / 2).toFixed(1)}) rotate(-90)" font-size="${size}" fill="#6d675e" font-style="italic" text-anchor="middle">${esc(s)}</text>`)
+  }
+  // One label per segment stack, beside its west rail.
+  for (const o of n.objects) if (o.kind === 'marking-label' && o.label && (!t.view || intersects(o.rect, t.view))) {
+    out.push(label(t.X(o.rect.x) + 4, t.Y(o.rect.y) - 3, o.label, 9.5, { weight: 650, fill: MARK }))
   }
   if (k.stroke !== 'none') out.push(rr(r, 'none', k.stroke, n.kind === 'area' ? 1.6 : n.kind === 'campus' ? 1.4 : 1))
   // Name and size.
@@ -150,7 +183,8 @@ export function renderPanels(panels: Panel[], opts: { title: string; intro?: str
     const S = p.scale ?? Math.min((PW - 2 * pad) / focus.w, (PH - top - pad - 10) / focus.d)
     const ox = cx + pad + Math.max(0, (PW - 2 * pad - focus.w * S) / 2)
     const oy = cy + top + 10
-    const t: Transform = { X: (x) => ox + (x - focus.x) * S, Y: (y) => oy + (y - focus.y) * S, S }
+    const viewW = (PW - 2) / S, viewH = (PH - top) / S
+    const t: Transform = { X: (x) => ox + (x - focus.x) * S, Y: (y) => oy + (y - focus.y) * S, S, ...(p.cull ? { view: { x: focus.x - (ox - cx) / S, y: focus.y - 10 / S, w: viewW, d: viewH } } : {}) }
     out.push(`<rect x="${cx}" y="${cy}" width="${PW}" height="${PH + notesH}" rx="8" fill="#fff" stroke="#e2e0da"/>`)
     out.push(label(cx + 12, cy + 18, p.title, 12.5, { weight: 650, fill: '#222' }))
     if (p.subtitle) out.push(label(cx + 12, cy + 33, p.subtitle, 10, { fill: '#666' }))

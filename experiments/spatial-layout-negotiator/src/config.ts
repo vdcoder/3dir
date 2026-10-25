@@ -52,6 +52,23 @@ export interface Config {
     sampling: 'uniform' | 'balanced'
     balance: number
   }
+  /** α.v3 only (fixed geometry, smart rooms, segmented shelving). α.v2 ignores this section. */
+  v3: {
+    /** MAX_ROOM_WIDTH: outer room width, both side clearances included. Room depth has no limit. */
+    maxRoomWidth: number
+    /** Extra room width from which a furnished side zone is made (less only widens the side clearances). */
+    sideZoneMin: number
+    /** Extra room depth from which a furnished front zone is made (less only deepens the entrance clearance). */
+    zoneMin: number
+    /** Extra room depth from which a middle zone (between the shelves and the table) is made as well. */
+    middleZoneMin: number
+    /** Clear walkway from the door through a front zone. */
+    walkway: number
+    /** Clearance between a feature's furniture and the edges of its zone. */
+    featureMargin: number
+    /** Width of the entrance walk from a centered building's door to the street or plaza in front of its row. */
+    campusWalk: number
+  }
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -70,7 +87,23 @@ export const DEFAULT_CONFIG: Config = {
     separators: [{ name: 'highway', width: 10 }, { name: 'street', width: 6 }, { name: 'path', width: 3.5 }, { name: 'hedge', width: 2 }],
     boundary: 2, signBand: 3.5, sign: { w: 3, d: 1.2 }, attempts: 100, keep: 6, sampling: 'uniform', balance: 1,
   },
+  v3: { maxRoomWidth: 10, sideZoneMin: 1.5, zoneMin: 1.5, middleZoneMin: 4, walkway: 1.2, featureMargin: 0.3, campusWalk: 2 },
 }
+
+/**
+ * MAX_SHELF_SEGMENT_LENGTH: the outer length of one physical shelf fixture, both side panels
+ * included. A room's side clearance (cfg.room.wall) is the only space between a full-length
+ * segment and the room's side walls, so the frame allowance is already inside the fixture length:
+ *   MAX_SHELF_SEGMENT_LENGTH = MAX_ROOM_WIDTH − 2 × side clearance  (= 10 − 2 × 0.5 = 9 m by default)
+ */
+export const maxShelfSegment = (c: Config) => c.v3.maxRoomWidth - 2 * c.room.wall
+/** Book length one segment can hold: the fixture minus its two side panels and the minimum breathing room. */
+export const segmentCapacity = (c: Config) => maxShelfSegment(c) - 2 * c.shelf.side - c.shelf.breathing
+/** Widest file table a room can hold: MAX_ROOM_WIDTH minus the side clearances and the table's own side clearance. */
+export const maxTableWidth = (c: Config) => c.v3.maxRoomWidth - 2 * c.room.wall - 2 * c.room.tableSide
+
+export const MAX_ROOM_WIDTH = DEFAULT_CONFIG.v3.maxRoomWidth
+export const MAX_SHELF_SEGMENT_LENGTH = maxShelfSegment(DEFAULT_CONFIG)
 
 export function validateConfig(c: Config): void {
   const bad: string[] = []
@@ -82,5 +115,10 @@ export function validateConfig(c: Config): void {
   walk(c, '')
   if (c.absorb > 1) bad.push(`absorb = ${c.absorb} (must be at most 1)`)
   if (c.maxOffers < 1) bad.push(`maxOffers = ${c.maxOffers}`)
+  if (c.v3) {
+    if (maxShelfSegment(c) < c.shelf.minLength) bad.push(`v3.maxRoomWidth = ${c.v3.maxRoomWidth} leaves no room for a minimum shelf`)
+    if (c.v3.maxRoomWidth < c.room.minW) bad.push(`v3.maxRoomWidth = ${c.v3.maxRoomWidth} is below room.minW`)
+    if (maxTableWidth(c) < c.room.file.w + 2 * c.room.tableMargin) bad.push(`v3.maxRoomWidth = ${c.v3.maxRoomWidth} cannot hold a one-file table`)
+  }
   if (bad.length) throw new Error(`Invalid configuration: ${bad.join(', ')}`)
 }

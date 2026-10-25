@@ -14,13 +14,28 @@ import { room } from './designers/room.ts'
 import { building } from './designers/building.ts'
 import { campus } from './designers/campus.ts'
 import { areaDesigner } from './designers/area.ts'
+import { bookshelfV3 } from './v3/bookshelf.ts'
+import { roomV3 } from './v3/room.ts'
+import { buildingV3, campusV3 } from './v3/rowsV3.ts'
+import { areaV3 } from './v3/area.ts'
 
-const DESIGNERS: Record<Kind, Designer> = {
-  shelf: bookshelf as Designer,
-  room: room as Designer,
-  building: building as Designer,
-  campus: campus as Designer,
-  area: areaDesigner as Designer,
+const DESIGNERS: Record<'v2' | 'v3', Record<Kind, Designer>> = {
+  // α.v2: every container keeps a share of its surplus and passes the rest down.
+  v2: {
+    shelf: bookshelf as Designer,
+    room: room as Designer,
+    building: building as Designer,
+    campus: campus as Designer,
+    area: areaDesigner as Designer,
+  },
+  // α.v3: areas, campuses, buildings and shelves keep their measured geometry; only rooms grow.
+  v3: {
+    shelf: bookshelfV3 as Designer,
+    room: roomV3 as Designer,
+    building: buildingV3 as Designer,
+    campus: campusV3 as Designer,
+    area: areaV3 as Designer,
+  },
 }
 
 export interface Options {
@@ -29,15 +44,26 @@ export interface Options {
   seed?: number
   /** Area packing attempts (overrides cfg.area.attempts). */
   attempts?: number
+  /** Designer set (default α.v2, so earlier results reproduce). */
+  version?: 'v2' | 'v3'
 }
+
+/** α.v3 defaults: balanced child-offer sampling (the sensitivity study's recommendation). */
+const V3_AREA: Partial<Config['area']> = { sampling: 'balanced', balance: 1 }
 
 export function createContext(opts: Options = {}): Ctx {
   const base = DEFAULT_CONFIG
-  const cfg: Config = { ...base, ...opts.cfg, area: { ...base.area, ...opts.cfg?.area, ...(opts.attempts ? { attempts: opts.attempts } : {}) } }
+  const version = opts.version ?? 'v2'
+  const cfg: Config = {
+    ...base, ...opts.cfg,
+    area: { ...base.area, ...(version === 'v3' ? V3_AREA : {}), ...opts.cfg?.area, ...(opts.attempts ? { attempts: opts.attempts } : {}) },
+    v3: { ...base.v3, ...opts.cfg?.v3 },
+  }
   validateConfig(cfg)
   const stats: Stats = { explored: 0, retained: 0, infeasible: 0, measured: 0, arranged: 0, byKind: {} }
   const ctx: Ctx = {
     cfg,
+    version,
     seed: opts.seed ?? 1,
     phase: 'measure',
     ancestors: [],
@@ -54,7 +80,7 @@ export function createContext(opts: Options = {}): Ctx {
 
 function measureNode(node: LayoutNode, ctx: Ctx): Measured {
   if (ctx.phase !== 'measure') throw new Error('MEASURE called during ARRANGE')
-  const d = DESIGNERS[node.kind]
+  const d = DESIGNERS[ctx.version][node.kind]
   ctx.ancestors.push(node)
   const kids = d.children(node, ctx).map((c) => measureNode(c, ctx))
   ctx.ancestors.pop()
@@ -78,13 +104,17 @@ function arrangeNode(m: Measured, offer: Offer, env: Rect, ctx: Ctx): Placed {
     throw new InfeasibleError(m.node.path, `allocated ${env.w.toFixed(2)} × ${env.d.toFixed(2)} m is smaller than the selected minimum ${offer.w.toFixed(2)} × ${offer.d.toFixed(2)} m`)
   }
   ctx.stats.arranged++
-  return DESIGNERS[m.node.kind].arrange(m, offer, env, ctx)
+  return DESIGNERS[ctx.version][m.node.kind].arrange(m, offer, env, ctx)
 }
 
 export interface Result { ctx: Ctx; measured: Measured; offer: Offer; placed: Placed; timings: { measureMs: number; arrangeMs: number } }
 
-/** Measures `root` and arranges it into an envelope `scale` times the chosen offer's minimum. */
+/**
+ * Measures `root` and arranges it into an envelope `scale` times the chosen offer's minimum.
+ * α.v3: the root is placed at exactly its chosen offer's size (no scale, no viewport).
+ */
 export function layout(root: LayoutNode, opts: Options & { pick?: (offers: Offer[]) => Offer; scale?: { x: number; y: number }; size?: { w: number; d: number } } = {}): Result {
+  if (opts.version === 'v3' && (opts.scale || opts.size)) throw new Error('α.v3 world geometry comes from measurement; it takes no scale or size')
   const ctx = createContext(opts)
   const t0 = performance.now()
   const measured = measureNode(root, ctx)

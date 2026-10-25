@@ -47,6 +47,8 @@ export interface AxisLedger {
 export type RegionRole =
   | 'padding' | 'wall' | 'separator' | 'aisle' | 'corridor' | 'entrance' | 'clearance' | 'breathing' | 'display'
   | 'structure' | 'spacing' | 'street' | 'path' | 'courtyard' | 'plaza' | 'boundary' | 'open'
+  // α.v3: furnished room zones, leftover interior circulation, campus grounds and entrance walks, building lobbies
+  | 'feature' | 'circulation' | 'walkway' | 'ground' | 'walk' | 'lobby'
 
 /** Space that belongs to the container itself (not to any child). */
 export interface Region {
@@ -57,6 +59,8 @@ export interface Region {
   axis?: 'x' | 'y'
   /** separator family (area designer), e.g. "street" */
   family?: string
+  /** α.v3 room features: which feature fills this zone. */
+  feature?: string
 }
 
 /** A physical, fixed-size thing inside a leaf (a book, a table, a file, a desk, a sign, a door). */
@@ -111,6 +115,8 @@ export class InfeasibleError extends Error {
 
 export interface Ctx {
   cfg: Config
+  /** Which designer set lays the hierarchy out: α.v2 (20% absorption) or α.v3 (fixed geometry, smart rooms). */
+  version: 'v2' | 'v3'
   seed: number
   phase: 'measure' | 'arrange'
   /** While measuring: the chain of containers above the one being measured (root first). */

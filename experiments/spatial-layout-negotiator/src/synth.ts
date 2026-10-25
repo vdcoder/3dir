@@ -132,3 +132,51 @@ function rebase(n: AreaNode | CampusNode | BuildingNode | RoomNode | ShelfNode, 
   else if (n.kind === 'building') n.rooms.forEach((c) => rebase(c, join(path, c.name)))
   else if (n.kind === 'room') n.shelves.forEach((c) => rebase(c, join(path, c.name)))
 }
+
+// ---------- α.v3 test material ----------
+
+/** A folder whose books add up to about `meters` of book width (books 3–9 cm wide). */
+export function shelfOfLength(parent: string, name: string, meters: number, r: () => number): ShelfNode {
+  const out: Book[] = []
+  let total = 0
+  while (total < meters) {
+    const w = +(0.03 + r() * 0.06).toFixed(3)
+    out.push({ name: `Item ${out.length + 1}.${EXT[out.length % EXT.length]}`, w })
+    total += w
+  }
+  return { kind: 'shelf', name, path: join(parent, name), books: out }
+}
+
+/** A room whose subfolders need very different shelf lengths (book widths in meters per folder). */
+export function mixedRoom(parent: string, name: string, lengths: number[], files: number, seed = 1): RoomNode {
+  const r = rng(seed)
+  const path = join(parent, name)
+  return { kind: 'room', name, path, shelves: lengths.map((m, i) => shelfOfLength(path, `Folder ${String.fromCharCode(65 + (i % 26))}${i >= 26 ? Math.floor(i / 26) : ''}`, m, r)), files: Array.from({ length: files }, (_, i) => `${name} file ${i + 1}.pdf`) }
+}
+
+/** The extreme room: one folder needing ~1,000 m of shelving, many ordinary folders, many loose files. */
+export function extremeRoom(parent = 'C:\\Users\\Amanda\\Documents\\Archive', opts: { longMeters?: number; folders?: number; files?: number; seed?: number } = {}): RoomNode {
+  const r = rng(opts.seed ?? 3)
+  const path = join(parent, 'Scanned Records')
+  const shelves = [shelfOfLength(path, 'All scans 1998-2026', opts.longMeters ?? 1000, r)]
+  for (let i = 0; i < (opts.folders ?? 40); i++) shelves.push(shelfOfLength(path, `Case ${String(i + 1).padStart(3, '0')}`, 0.2 + r() * r() * 7, r))
+  return { kind: 'room', name: 'Scanned Records', path, shelves, files: Array.from({ length: opts.files ?? 600 }, (_, i) => `scan-${String(i + 1).padStart(4, '0')}.pdf`) }
+}
+
+/**
+ * A copy of a hierarchy where a few folders (about `share` of all shelves, chosen with a seeded
+ * generator independent of the original) hold `meters` [min, max] of books: long enough to need
+ * segmenting in α.v3. The original tree is not changed.
+ */
+export function withLongShelves<T extends AreaNode | RoomNode>(root: T, share: number, meters: [number, number], seed = 1): T {
+  const copy = structuredClone(root)
+  const r = rng(hash(`long|${seed}|${share}`))
+  const visit = (n: AreaNode | CampusNode | BuildingNode | RoomNode) => {
+    if (n.kind === 'area') n.children.forEach(visit)
+    else if (n.kind === 'campus') n.buildings.forEach(visit)
+    else if (n.kind === 'building') n.rooms.forEach(visit)
+    else n.shelves.forEach((s, i) => { if (r() < share) n.shelves[i] = shelfOfLength(n.path, s.name, meters[0] + r() * (meters[1] - meters[0]), r) })
+  }
+  visit(copy)
+  return copy
+}
