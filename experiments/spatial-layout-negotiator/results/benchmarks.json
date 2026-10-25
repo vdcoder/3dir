@@ -1,0 +1,759 @@
+{
+  "env": {
+    "date": "2026-10-25T00:05:02.145Z",
+    "node": "v22.22.0",
+    "v8": "12.4.254.21-node.33",
+    "platform": "Linux 6.18.44-fc-v153 x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cores": 4,
+    "memoryGB": 15.7,
+    "gcExposed": true,
+    "peakRssMB": 770.07
+  },
+  "rows": [
+    {
+      "target": 10,
+      "containers": 10,
+      "books": 45,
+      "attempts": 10,
+      "runs": 7,
+      "measureMs": 0.42,
+      "arrangeMs": 0.32,
+      "arrange2xMs": 0.23,
+      "totalMs": 0.74,
+      "measuredHeapMB": 0.02,
+      "placedHeapMB": 0.09,
+      "planKB": 6,
+      "areaMs": 0.21,
+      "fill": {
+        "area": 30.93,
+        "campus": 17.96,
+        "building": 56.11,
+        "room": 29.16,
+        "room furniture": 9.23
+      },
+      "explored": 34,
+      "retained": 22,
+      "infeasible": 2,
+      "roomShare": 3.12,
+      "topLevelShare": 30.93,
+      "rootW": 31.36,
+      "rootD": 35.12,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 0.05,
+          "explored": 12,
+          "retained": 12,
+          "containers": 4
+        },
+        "room": {
+          "ms": 0.07,
+          "explored": 4,
+          "retained": 4,
+          "containers": 2
+        },
+        "building": {
+          "ms": 0.04,
+          "explored": 4,
+          "retained": 2,
+          "containers": 2
+        },
+        "campus": {
+          "ms": 0.03,
+          "explored": 4,
+          "retained": 2,
+          "containers": 1
+        },
+        "area": {
+          "ms": 0.19,
+          "explored": 10,
+          "retained": 2,
+          "containers": 1
+        }
+      }
+    },
+    {
+      "target": 10,
+      "containers": 10,
+      "books": 45,
+      "attempts": 100,
+      "runs": 7,
+      "measureMs": 1.34,
+      "arrangeMs": 0.29,
+      "arrange2xMs": 0.23,
+      "totalMs": 1.63,
+      "measuredHeapMB": 0.01,
+      "placedHeapMB": 0.1,
+      "planKB": 6,
+      "areaMs": 1.17,
+      "fill": {
+        "area": 30.93,
+        "campus": 17.96,
+        "building": 56.11,
+        "room": 29.16,
+        "room furniture": 9.23
+      },
+      "explored": 124,
+      "retained": 22,
+      "infeasible": 2,
+      "roomShare": 3.12,
+      "topLevelShare": 30.93,
+      "rootW": 31.36,
+      "rootD": 35.12,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 0.02,
+          "explored": 12,
+          "retained": 12,
+          "containers": 4
+        },
+        "room": {
+          "ms": 0.07,
+          "explored": 4,
+          "retained": 4,
+          "containers": 2
+        },
+        "building": {
+          "ms": 0.03,
+          "explored": 4,
+          "retained": 2,
+          "containers": 2
+        },
+        "campus": {
+          "ms": 0.02,
+          "explored": 4,
+          "retained": 2,
+          "containers": 1
+        },
+        "area": {
+          "ms": 2.02,
+          "explored": 100,
+          "retained": 2,
+          "containers": 1
+        }
+      }
+    },
+    {
+      "target": 10,
+      "containers": 10,
+      "books": 45,
+      "attempts": 1000,
+      "runs": 3,
+      "measureMs": 14.43,
+      "arrangeMs": 0.35,
+      "arrange2xMs": 0.26,
+      "totalMs": 14.78,
+      "measuredHeapMB": 0.03,
+      "placedHeapMB": 0.09,
+      "planKB": 6,
+      "areaMs": 14.24,
+      "fill": {
+        "area": 30.93,
+        "campus": 17.96,
+        "building": 56.11,
+        "room": 29.16,
+        "room furniture": 9.23
+      },
+      "explored": 1024,
+      "retained": 22,
+      "infeasible": 2,
+      "roomShare": 3.12,
+      "topLevelShare": 30.93,
+      "rootW": 31.36,
+      "rootD": 35.12,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 0.03,
+          "explored": 12,
+          "retained": 12,
+          "containers": 4
+        },
+        "room": {
+          "ms": 0.12,
+          "explored": 4,
+          "retained": 4,
+          "containers": 2
+        },
+        "building": {
+          "ms": 0.04,
+          "explored": 4,
+          "retained": 2,
+          "containers": 2
+        },
+        "campus": {
+          "ms": 0.03,
+          "explored": 4,
+          "retained": 2,
+          "containers": 1
+        },
+        "area": {
+          "ms": 16.3,
+          "explored": 1000,
+          "retained": 2,
+          "containers": 1
+        }
+      }
+    },
+    {
+      "target": 100,
+      "containers": 105,
+      "books": 658,
+      "attempts": 10,
+      "runs": 7,
+      "measureMs": 3.28,
+      "arrangeMs": 1.69,
+      "arrange2xMs": 1.63,
+      "totalMs": 4.96,
+      "measuredHeapMB": 0.19,
+      "placedHeapMB": 1.24,
+      "planKB": 90,
+      "areaMs": 1.32,
+      "fill": {
+        "area": 54.89,
+        "campus": 27.82,
+        "building": 56.35,
+        "room": 33.88,
+        "room furniture": 8.75
+      },
+      "explored": 547,
+      "retained": 296,
+      "infeasible": 65,
+      "roomShare": 4.28,
+      "topLevelShare": 61.21,
+      "rootW": 87.01,
+      "rootD": 131.33,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 0.18,
+          "explored": 159,
+          "retained": 159,
+          "containers": 53
+        },
+        "room": {
+          "ms": 0.53,
+          "explored": 78,
+          "retained": 77,
+          "containers": 31
+        },
+        "building": {
+          "ms": 0.51,
+          "explored": 186,
+          "retained": 31,
+          "containers": 13
+        },
+        "campus": {
+          "ms": 0.24,
+          "explored": 94,
+          "retained": 13,
+          "containers": 5
+        },
+        "area": {
+          "ms": 1.19,
+          "explored": 30,
+          "retained": 16,
+          "containers": 3
+        }
+      }
+    },
+    {
+      "target": 100,
+      "containers": 105,
+      "books": 658,
+      "attempts": 100,
+      "runs": 7,
+      "measureMs": 8.5,
+      "arrangeMs": 1.99,
+      "arrange2xMs": 4.71,
+      "totalMs": 10.49,
+      "measuredHeapMB": 0.19,
+      "placedHeapMB": 1.16,
+      "planKB": 90,
+      "areaMs": 6.88,
+      "fill": {
+        "area": 59.77,
+        "campus": 21.3,
+        "building": 56.11,
+        "room": 31.67,
+        "room furniture": 9.31
+      },
+      "explored": 817,
+      "retained": 296,
+      "infeasible": 65,
+      "roomShare": 4.01,
+      "topLevelShare": 65.25,
+      "rootW": 115.57,
+      "rootD": 96.98,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 0.19,
+          "explored": 159,
+          "retained": 159,
+          "containers": 53
+        },
+        "room": {
+          "ms": 0.53,
+          "explored": 78,
+          "retained": 77,
+          "containers": 31
+        },
+        "building": {
+          "ms": 0.51,
+          "explored": 186,
+          "retained": 31,
+          "containers": 13
+        },
+        "campus": {
+          "ms": 0.24,
+          "explored": 94,
+          "retained": 13,
+          "containers": 5
+        },
+        "area": {
+          "ms": 6.88,
+          "explored": 300,
+          "retained": 16,
+          "containers": 3
+        }
+      }
+    },
+    {
+      "target": 100,
+      "containers": 105,
+      "books": 658,
+      "attempts": 1000,
+      "runs": 3,
+      "measureMs": 56.02,
+      "arrangeMs": 1.56,
+      "arrange2xMs": 1.73,
+      "totalMs": 57.58,
+      "measuredHeapMB": 0.2,
+      "placedHeapMB": 1.17,
+      "planKB": 90,
+      "areaMs": 54.43,
+      "fill": {
+        "area": 59.32,
+        "campus": 22.07,
+        "building": 56.18,
+        "room": 31.8,
+        "room furniture": 9.25
+      },
+      "explored": 3517,
+      "retained": 296,
+      "infeasible": 65,
+      "roomShare": 4.21,
+      "topLevelShare": 62.45,
+      "rootW": 116.9,
+      "rootD": 91.95,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 0.24,
+          "explored": 159,
+          "retained": 159,
+          "containers": 53
+        },
+        "room": {
+          "ms": 0.61,
+          "explored": 78,
+          "retained": 77,
+          "containers": 31
+        },
+        "building": {
+          "ms": 0.56,
+          "explored": 186,
+          "retained": 31,
+          "containers": 13
+        },
+        "campus": {
+          "ms": 0.3,
+          "explored": 94,
+          "retained": 13,
+          "containers": 5
+        },
+        "area": {
+          "ms": 58.5,
+          "explored": 3000,
+          "retained": 16,
+          "containers": 3
+        }
+      }
+    },
+    {
+      "target": 1000,
+      "containers": 1055,
+      "books": 5974,
+      "attempts": 10,
+      "runs": 7,
+      "measureMs": 24.28,
+      "arrangeMs": 29.46,
+      "arrange2xMs": 21.09,
+      "totalMs": 53.74,
+      "measuredHeapMB": 1.88,
+      "placedHeapMB": 11.42,
+      "planKB": 901,
+      "areaMs": 11.78,
+      "fill": {
+        "area": 75.07,
+        "campus": 24.91,
+        "building": 56.26,
+        "room": 31.64,
+        "room furniture": 8.47
+      },
+      "explored": 5433,
+      "retained": 2938,
+      "infeasible": 689,
+      "roomShare": 3.75,
+      "topLevelShare": 83.16,
+      "rootW": 533.75,
+      "rootD": 242.31,
+      "violations": 0,
+      "byKind": {
+        "room": {
+          "ms": 3.34,
+          "explored": 750,
+          "retained": 740,
+          "containers": 319
+        },
+        "building": {
+          "ms": 2.93,
+          "explored": 1962,
+          "retained": 316,
+          "containers": 123
+        },
+        "shelf": {
+          "ms": 2.21,
+          "explored": 1632,
+          "retained": 1632,
+          "containers": 544
+        },
+        "campus": {
+          "ms": 1.23,
+          "explored": 869,
+          "retained": 119,
+          "containers": 47
+        },
+        "area": {
+          "ms": 12.89,
+          "explored": 220,
+          "retained": 131,
+          "containers": 22
+        }
+      }
+    },
+    {
+      "target": 1000,
+      "containers": 1055,
+      "books": 5974,
+      "attempts": 100,
+      "runs": 7,
+      "measureMs": 77.78,
+      "arrangeMs": 22.6,
+      "arrange2xMs": 17.12,
+      "totalMs": 100.38,
+      "measuredHeapMB": 1.84,
+      "placedHeapMB": 10.92,
+      "planKB": 901,
+      "areaMs": 69.3,
+      "fill": {
+        "area": 79.96,
+        "campus": 23.24,
+        "building": 55.85,
+        "room": 30.79,
+        "room furniture": 8.87
+      },
+      "explored": 7413,
+      "retained": 2939,
+      "infeasible": 689,
+      "roomShare": 4.7,
+      "topLevelShare": 86.96,
+      "rootW": 231.83,
+      "rootD": 427.39,
+      "violations": 0,
+      "byKind": {
+        "room": {
+          "ms": 3.76,
+          "explored": 750,
+          "retained": 740,
+          "containers": 319
+        },
+        "building": {
+          "ms": 4.86,
+          "explored": 1962,
+          "retained": 316,
+          "containers": 123
+        },
+        "shelf": {
+          "ms": 0.55,
+          "explored": 1632,
+          "retained": 1632,
+          "containers": 544
+        },
+        "campus": {
+          "ms": 3.19,
+          "explored": 869,
+          "retained": 119,
+          "containers": 47
+        },
+        "area": {
+          "ms": 83.94,
+          "explored": 2200,
+          "retained": 132,
+          "containers": 22
+        }
+      }
+    },
+    {
+      "target": 1000,
+      "containers": 1055,
+      "books": 5974,
+      "attempts": 1000,
+      "runs": 3,
+      "measureMs": 454.95,
+      "arrangeMs": 14.81,
+      "arrange2xMs": 17.92,
+      "totalMs": 469.76,
+      "measuredHeapMB": 1.83,
+      "placedHeapMB": 10.92,
+      "planKB": 901,
+      "areaMs": 446.87,
+      "fill": {
+        "area": 79.92,
+        "campus": 21.63,
+        "building": 56.03,
+        "room": 30.51,
+        "room furniture": 8.87
+      },
+      "explored": 27213,
+      "retained": 2939,
+      "infeasible": 689,
+      "roomShare": 4.51,
+      "topLevelShare": 85.62,
+      "rootW": 232.18,
+      "rootD": 442.73,
+      "violations": 0,
+      "byKind": {
+        "room": {
+          "ms": 3.26,
+          "explored": 750,
+          "retained": 740,
+          "containers": 319
+        },
+        "building": {
+          "ms": 2.89,
+          "explored": 1962,
+          "retained": 316,
+          "containers": 123
+        },
+        "shelf": {
+          "ms": 0.48,
+          "explored": 1632,
+          "retained": 1632,
+          "containers": 544
+        },
+        "campus": {
+          "ms": 1.07,
+          "explored": 869,
+          "retained": 119,
+          "containers": 47
+        },
+        "area": {
+          "ms": 438.11,
+          "explored": 22000,
+          "retained": 132,
+          "containers": 22
+        }
+      }
+    },
+    {
+      "target": 5000,
+      "containers": 5223,
+      "books": 30547,
+      "attempts": 10,
+      "runs": 3,
+      "measureMs": 101.09,
+      "arrangeMs": 77.45,
+      "arrange2xMs": 64.19,
+      "totalMs": 178.54,
+      "measuredHeapMB": 9.1,
+      "placedHeapMB": 57.06,
+      "planKB": 4440,
+      "areaMs": 48.01,
+      "fill": {
+        "area": 79.37,
+        "campus": 26.46,
+        "building": 56.28,
+        "room": 31.3,
+        "room furniture": 8.62
+      },
+      "explored": 27982,
+      "retained": 14630,
+      "infeasible": 3617,
+      "roomShare": 3.99,
+      "topLevelShare": 85.46,
+      "rootW": 972.22,
+      "rootD": 614.35,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 5.12,
+          "explored": 8304,
+          "retained": 8304,
+          "containers": 2768
+        },
+        "room": {
+          "ms": 18.89,
+          "explored": 3768,
+          "retained": 3688,
+          "containers": 1574
+        },
+        "building": {
+          "ms": 24.42,
+          "explored": 10405,
+          "retained": 1547,
+          "containers": 580
+        },
+        "campus": {
+          "ms": 8.07,
+          "explored": 4615,
+          "retained": 564,
+          "containers": 212
+        },
+        "area": {
+          "ms": 56.38,
+          "explored": 890,
+          "retained": 527,
+          "containers": 89
+        }
+      }
+    },
+    {
+      "target": 5000,
+      "containers": 5223,
+      "books": 30547,
+      "attempts": 100,
+      "runs": 3,
+      "measureMs": 375.48,
+      "arrangeMs": 65.5,
+      "arrange2xMs": 65.88,
+      "totalMs": 440.97,
+      "measuredHeapMB": 9.08,
+      "placedHeapMB": 55.03,
+      "planKB": 4447,
+      "areaMs": 311.78,
+      "fill": {
+        "area": 81.72,
+        "campus": 22.82,
+        "building": 56.19,
+        "room": 30.66,
+        "room furniture": 8.86
+      },
+      "explored": 35992,
+      "retained": 14635,
+      "infeasible": 3617,
+      "roomShare": 4.2,
+      "topLevelShare": 82.87,
+      "rootW": 679.93,
+      "rootD": 813.18,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 2.92,
+          "explored": 8304,
+          "retained": 8304,
+          "containers": 2768
+        },
+        "room": {
+          "ms": 20.34,
+          "explored": 3768,
+          "retained": 3688,
+          "containers": 1574
+        },
+        "building": {
+          "ms": 18.52,
+          "explored": 10405,
+          "retained": 1547,
+          "containers": 580
+        },
+        "campus": {
+          "ms": 9.35,
+          "explored": 4615,
+          "retained": 564,
+          "containers": 212
+        },
+        "area": {
+          "ms": 348.16,
+          "explored": 8900,
+          "retained": 532,
+          "containers": 89
+        }
+      }
+    },
+    {
+      "target": 5000,
+      "containers": 5223,
+      "books": 30547,
+      "attempts": 1000,
+      "runs": 3,
+      "measureMs": 2455.03,
+      "arrangeMs": 70.07,
+      "arrange2xMs": 67.96,
+      "totalMs": 2525.1,
+      "measuredHeapMB": 9.08,
+      "placedHeapMB": 55.01,
+      "planKB": 4447,
+      "areaMs": 2406.51,
+      "fill": {
+        "area": 83.15,
+        "campus": 22.62,
+        "building": 56.16,
+        "room": 30.69,
+        "room furniture": 8.87
+      },
+      "explored": 116092,
+      "retained": 14635,
+      "infeasible": 3617,
+      "roomShare": 4.64,
+      "topLevelShare": 83.65,
+      "rootW": 868.97,
+      "rootD": 575.04,
+      "violations": 0,
+      "byKind": {
+        "shelf": {
+          "ms": 2.83,
+          "explored": 8304,
+          "retained": 8304,
+          "containers": 2768
+        },
+        "room": {
+          "ms": 18.4,
+          "explored": 3768,
+          "retained": 3688,
+          "containers": 1574
+        },
+        "building": {
+          "ms": 17.39,
+          "explored": 10405,
+          "retained": 1547,
+          "containers": 580
+        },
+        "campus": {
+          "ms": 7.34,
+          "explored": 4615,
+          "retained": 564,
+          "containers": 212
+        },
+        "area": {
+          "ms": 2406.51,
+          "explored": 89000,
+          "retained": 532,
+          "containers": 89
+        }
+      }
+    }
+  ]
+}

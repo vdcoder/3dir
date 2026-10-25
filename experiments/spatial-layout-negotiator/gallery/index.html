@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout Negotiator Gallery</title>
+<style>
+body { font-family: Inter, 'Segoe UI', Helvetica, Arial, sans-serif; margin: 0; padding: 24px 16px 48px; background: #f4f3ef; color: #222; }
+main { max-width: 1200px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 6px; } p.lead { color: #555; margin: 0 0 24px; }
+figure { margin: 0 0 28px; background: #fff; border: 1px solid #e2e0da; border-radius: 10px; padding: 14px; }
+figure img { width: 100%; height: auto; display: block; }
+figcaption { font-size: 14px; margin-bottom: 10px; } figcaption b { display: block; font-size: 16px; margin-bottom: 4px; }
+pre { background: #fff; border: 1px solid #e2e0da; border-radius: 10px; padding: 14px; overflow: auto; font-size: 12px; }
+</style></head><body><main>
+<h1>Spatial Layout Negotiator α.v2 — gallery</h1>
+<p class="lead">Five specialized designers, one measure/arrange protocol, 20% of every surplus kept at each level. All layouts below passed the validator (0 violations). Open any image for full size.</p>
+<figure><figcaption><b>Designer A — Bookshelf: minimum offers and an expanded shelf</b>Three real arrangements (packed, with a display bay, evenly spaced) at minimum length, and the packed shelf grown into a longer, deeper envelope.</figcaption><a href="a-bookshelf.svg"><img src="a-bookshelf.svg" alt="Designer A — Bookshelf: minimum offers and an expanded shelf"></a></figure>
+<figure><figcaption><b>Designer B — Room: the offer family (shelves per row = 1 … 5)</b>One room (5 subfolders → 5 identical shelves, 14 loose files on a table) measured as a family of shelf-row layouts; each table is sized for its room.</figcaption><a href="b-room-offers.svg"><img src="b-room-offers.svg" alt="Designer B — Room: the offer family (shelves per row = 1 … 5)"></a></figure>
+<figure><figcaption><b>Designer B — Room growth without a new search</b>The same saved room plan grown into larger envelopes: rows and identical shelves are preserved; 20% widens aisles and clearances; computer and display desks join the table when there is room.</figcaption><a href="b-room-growth.svg"><img src="b-room-growth.svg" alt="Designer B — Room growth without a new search"></a></figure>
+<figure><figcaption><b>Designer B — Rooms of loose files: near-square tables</b>With no shelves, or few shelves and many files, the room also offers a table about √N files on a side (here 5 × 4 for 20 files).</figcaption><a href="b-room-square-tables.svg"><img src="b-room-square-tables.svg" alt="Designer B — Rooms of loose files: near-square tables"></a></figure>
+<figure><figcaption><b>Designer C — Building: three rooms aligned at one shared depth</b>Acceptance test: rooms whose offers have different minimum depths sit side by side at one common depth; each room grows its saved plan into it (dashed: the depth that room's own offer needs).</figcaption><a href="c-building-shared-depth.svg"><img src="c-building-shared-depth.svg" alt="Designer C — Building: three rooms aligned at one shared depth"></a></figure>
+<figure><figcaption><b>Designer D — Campus: the same buildings in several grid configurations</b>AmandaMedicalMiami (4 buildings + a file building for its loose files) as 1, 2, 3 … buildings per row. Buildings in a row share a depth; streets separate rows; with two or more rows a central courtyard is part of the minimum.</figcaption><a href="d-campus-grids.svg"><img src="d-campus-grids.svg" alt="Designer D — Campus: the same buildings in several grid configurations"></a></figure>
+<figure><figcaption><b>Designer E — Area: distinct packings retained from 100 seeded attempts</b>Projects (a campus and six buildings), as a level-2 area, packed on an X/Y marking grid with a 3.5 m path around every child. The best distinct attempts are kept as blueprints; narrow, square and wide ones all survive.</figcaption><a href="e-area-candidates.svg"><img src="e-area-candidates.svg" alt="Designer E — Area: distinct packings retained from 100 seeded attempts"></a></figure>
+<figure><figcaption><b>Designer E — A saved blueprint, before and after growth</b>The selected blueprint is stretched, not re-searched: order, adjacency and clearances are kept; 20% of each axis' surplus widens the boundary and streets, 80% widens the children in proportion to their size.</figcaption><a href="e-area-blueprint-growth.svg"><img src="e-area-blueprint-growth.svg" alt="Designer E — A saved blueprint, before and after growth"></a></figure>
+<figure><figcaption><b>The complete hierarchy: Area → Campus → Building → Room → Bookshelf</b>C:\Users\Amanda (fictional) laid out by the five designers. Each panel zooms into the outlined child: the AmandaMedicalMiami campus, its Finance building, the Budgets room, and its "2027 draft" shelf.</figcaption><a href="f-hierarchy.svg"><img src="f-hierarchy.svg" alt="The complete hierarchy: Area → Campus → Building → Room → Bookshelf"></a></figure>
+<figure><figcaption><b>A very large growth: 3× wider and 2.5× deeper at the root</b>The same measured hierarchy allocated 3× its minimum width and 2.5× its depth. Each level keeps its share (wider highways and streets, larger courtyard and plaza, wider corridors and aisles, longer shelf) and passes the rest down; books never change size.</figcaption><a href="g-large-growth.svg"><img src="g-large-growth.svg" alt="A very large growth: 3× wider and 2.5× deeper at the root"></a></figure>
+<h2>Benchmarks</h2><pre># Benchmarks — Spatial Layout Negotiator α.v2
+
+Measured 2026-10-25T00:05:02.145Z on Intel(R) Xeon(R) Processor @ 2.10GHz (4 cores, 15.7 GB), Linux 6.18.44-fc-v153 x64, Node v22.22.0 (V8 12.4.254.21-node.33). Timings are medians of 3–7 runs after a warm-up run. Heap figures are the retained heap of one measured tree (offers and saved plans) and of one placed tree, from keeping three of each alive after forced GC (gc exposed: true). Peak RSS of the whole benchmark process: 770.07 MB. SVG generation is not included.
+
+Synthetic hierarchies (seed 1): campuses of 1–4 buildings, buildings of 1–4 rooms, rooms of 0–4 shelves with 4–18 books and 0–9 loose files, grouped into nested areas of 2–5 children. "Containers" counts areas, campuses, buildings, rooms (including files rooms) and shelves; books and tables are not containers.
+
+## Both passes, default Area budget (100 attempts)
+
+| target | containers | books | measure ms | arrange ms (1×) | arrange ms (2×) | total ms | measured heap MB | saved plans KB | placed heap MB | explored | retained | infeasible | violations |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 10 | 10 | 45 | 1.34 | 0.29 | 0.23 | 1.63 | 0.01 | 6 | 0.1 | 124 | 22 | 2 | 0 |
+| 100 | 105 | 658 | 8.5 | 1.99 | 4.71 | 10.49 | 0.19 | 90 | 1.16 | 817 | 296 | 65 | 0 |
+| 1000 | 1055 | 5974 | 77.78 | 22.6 | 17.12 | 100.38 | 1.84 | 901 | 10.92 | 7413 | 2939 | 689 | 0 |
+| 5000 | 5223 | 30547 | 375.48 | 65.5 | 65.88 | 440.97 | 9.08 | 4447 | 55.03 | 35992 | 14635 | 3617 | 0 |
+
+## Space utilization at minimum size (100 attempts)
+
+Share of each container's area occupied by its children, summed over all containers of that kind. The rest is the container's own space: boundaries, separators, streets, courtyards, corridors, aisles and entrance zones. "Room furniture" is the physical footprint of shelves, tables and desks.
+
+| target | area → children | campus → buildings | building → rooms | room → furniture envelopes | room → furniture | rooms % of root |
+|---:|---:|---:|---:|---:|---:|---:|
+| 10 | 30.93 | 17.96 | 56.11 | 29.16 | 9.23 | 3.12 |
+| 100 | 59.77 | 21.3 | 56.11 | 31.67 | 9.31 | 4.01 |
+| 1000 | 79.96 | 23.24 | 55.85 | 30.79 | 8.87 | 4.7 |
+| 5000 | 81.72 | 22.82 | 56.19 | 30.66 | 8.86 | 4.2 |
+
+## Area search budget: 10 vs 100 vs 1,000 attempts
+
+| target | attempts | measure ms | of which Area designer ms | explored | retained | root min size m | root min area m² | rooms % of root | violations |
+|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|
+| 10 | 10 | 0.42 | 0.21 | 34 | 22 | 31.36 × 35.12 | 1101 | 3.12 | 0 |
+| 10 | 100 | 1.34 | 1.17 | 124 | 22 | 31.36 × 35.12 | 1101 | 3.12 | 0 |
+| 10 | 1000 | 14.43 | 14.24 | 1024 | 22 | 31.36 × 35.12 | 1101 | 3.12 | 0 |
+| 100 | 10 | 3.28 | 1.32 | 547 | 296 | 87.01 × 131.33 | 11427 | 4.28 | 0 |
+| 100 | 100 | 8.5 | 6.88 | 817 | 296 | 115.57 × 96.98 | 11208 | 4.01 | 0 |
+| 100 | 1000 | 56.02 | 54.43 | 3517 | 296 | 116.9 × 91.95 | 10749 | 4.21 | 0 |
+| 1000 | 10 | 24.28 | 11.78 | 5433 | 2938 | 533.75 × 242.31 | 129333 | 3.75 | 0 |
+| 1000 | 100 | 77.78 | 69.3 | 7413 | 2939 | 231.83 × 427.39 | 99082 | 4.7 | 0 |
+| 1000 | 1000 | 454.95 | 446.87 | 27213 | 2939 | 232.18 × 442.73 | 102793 | 4.51 | 0 |
+| 5000 | 10 | 101.09 | 48.01 | 27982 | 14630 | 972.22 × 614.35 | 597283 | 3.99 | 0 |
+| 5000 | 100 | 375.48 | 311.78 | 35992 | 14635 | 679.93 × 813.18 | 552905 | 4.2 | 0 |
+| 5000 | 1000 | 2455.03 | 2406.51 | 116092 | 14635 | 868.97 × 575.04 | 499693 | 4.64 | 0 |
+
+## Where the measuring time goes (1,000 containers, 100 attempts, last run)
+
+| designer | containers | own measure ms | candidates explored | offers retained | retained per container |
+|---|---:|---:|---:|---:|---:|
+| room | 319 | 3.76 | 750 | 740 | 2.3 |
+| building | 123 | 4.86 | 1962 | 316 | 2.6 |
+| shelf | 544 | 0.55 | 1632 | 1632 | 3.0 |
+| campus | 47 | 3.19 | 869 | 119 | 2.5 |
+| area | 22 | 83.94 | 2200 | 132 | 6.0 |
+</pre>
+</main></body></html>

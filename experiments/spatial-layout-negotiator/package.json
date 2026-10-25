@@ -1,0 +1,12 @@
+{
+  "name": "spatial-layout-negotiator",
+  "private": true,
+  "type": "module",
+  "description": "Standalone experiment: five specialized layout designers sharing a measure/arrange protocol. Not part of the 3dir app.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "gallery": "node src/gallery.ts",
+    "bench": "node --expose-gc src/bench.ts"
+  }
+}

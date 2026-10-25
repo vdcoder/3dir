@@ -140,6 +140,14 @@ Also `overview.jpg` (quieter labels), `amm-campus.jpg`, `amm-box.jpg` and `legen
 2. Candidates, pending that review: more representation variety (would justify specific new assets, which
    need approval), wayfinding signs at region gates, and a first-person or guided-tour camera (postponed).
 
+## Experiment: Spatial Layout Negotiator α.v2 (standalone, 2026-10-25)
+
+`experiments/spatial-layout-negotiator/` implements the five specialized designers (Bookshelf, Room, Building,
+Campus, Area) with the measure/arrange protocol and the 20% growth rule, independently of the app. 48 tests,
+10 validated SVG drawings (`gallery/index.html`) and measured benchmarks (`results/benchmarks.md`): 5,000
+containers measure in about 0.4 s and arrange in under 0.1 s at the default 100 Area attempts. Findings and
+limitations are in its README. Not integrated into the app; no credits used.
+
 ## Earlier checkpoints
 - **Iteration 1 (flagship, accepted):** synthetic computer, 2D explorer, spatial world with the Alder & Finch
   business district, studio, gallery with 40 photos, pins, off-screen indicator, Pages deployment. Screenshots:
