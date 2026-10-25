@@ -98,7 +98,7 @@ function attempt(node: AreaNode, kids: Measured[], ctx: Ctx, a: number, level: n
   const order = a === 0
     ? [...idx].sort((i, j) => importanceOf(kids[j].node) - importanceOf(kids[i].node) || minArea(kids[j].offers) - minArea(kids[i].offers) || i - j)
     : shuffle(idx, r)
-  const pick = kids.map((k) => (a === 0 ? smallest(k.offers) : k.offers[Math.floor(r() * k.offers.length)]))
+  const pick = kids.map((k) => (a === 0 ? smallest(k.offers) : sample(k.offers, r(), ctx.cfg.area.sampling, ctx.cfg.area.balance)))
   const aspect = a === 0 ? 1.2 : Math.exp((r() - 0.5) * 1.2)
   const inflated = pick.map((o) => ({ w: o.w + P, d: o.d + P }))
   const total = inflated.reduce((s, o) => s + o.w * o.d, 0)
@@ -137,6 +137,25 @@ function attempt(node: AreaNode, kids: Measured[], ctx: Ctx, a: number, level: n
     // Child rectangles in area coordinates: inside the boundary, half a separator in from their cell.
     placements: placements.map((p) => ({ ...p, x: B + p.x + P / 2, y: B + p.y + P / 2 })),
   }
+}
+
+/** Aspect-ratio weight of an offer: 1 for a square, short/long side for anything else (to a power). */
+export const balanceWeight = (o: { w: number; d: number }, strength: number) => (Math.min(o.w, o.d) / Math.max(o.w, o.d)) ** strength
+
+/**
+ * One child offer from one random number u in [0, 1): uniform, or weighted by balance.
+ * Both modes consume exactly one draw, so runs with the same seed stay paired.
+ */
+export function sample(offers: Offer[], u: number, mode: 'uniform' | 'balanced', strength: number): Offer {
+  if (mode === 'uniform' || offers.length === 1) return offers[Math.floor(u * offers.length)]
+  const weights = offers.map((o) => balanceWeight(o, strength))
+  const total = weights.reduce((s, w) => s + w, 0)
+  let acc = 0
+  for (let i = 0; i < offers.length; i++) {
+    acc += weights[i] / total
+    if (u < acc) return offers[i]
+  }
+  return offers[offers.length - 1]
 }
 
 const minArea = (offers: Offer[]) => Math.min(...offers.map((o) => o.w * o.d))

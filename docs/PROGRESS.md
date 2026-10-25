@@ -148,6 +148,15 @@ Campus, Area) with the measure/arrange protocol and the 20% growth rule, indepen
 containers measure in about 0.4 s and arrange in under 0.1 s at the default 100 Area attempts. Findings and
 limitations are in its README. Not integrated into the app; no credits used.
 
+**Sensitivity study (2026-10-25, branch `claude/negotiator-sensitivity`).** Absorption 20% / 10% / 5% ×
+uniform / balanced child-offer sampling (weight = short side / long side), 3 datasets × 5 seeds × 3
+allocations: 360 layouts, 0 violations. Balanced sampling gives consistently better proportions for 2–5% more
+minimum area. Lower absorption makes rooms and shelves grow much faster than the root (rooms 7× / 13× / 18×
+when the root grows 4×) and lowers shelf fill and furniture density; 20% is best of the tested rates, and an
+exploratory 35% arm suggests the optimum lies between 20% and 35%. Recommendation: balanced sampling; keep
+20%; test 25–30% or per-designer rates before integration. Runtime unchanged. Details: the experiment's README
+and `results/sensitivity.md`. 54 tests. App untouched; no credits used.
+
 ## Earlier checkpoints
 - **Iteration 1 (flagship, accepted):** synthetic computer, 2D explorer, spatial world with the Alder & Finch
   business district, studio, gallery with 40 photos, pins, off-screen indicator, Pages deployment. Screenshots:

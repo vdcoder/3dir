@@ -7,6 +7,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
     "gallery": "node src/gallery.ts",
-    "bench": "node --expose-gc src/bench.ts"
+    "bench": "node --expose-gc src/bench.ts",
+    "study": "node --expose-gc src/study.ts"
   }
 }

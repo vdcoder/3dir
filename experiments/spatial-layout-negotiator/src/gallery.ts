@@ -236,6 +236,7 @@ pre { background: #fff; border: 1px solid #e2e0da; border-radius: 10px; padding:
 </style></head><body><main>
 <h1>Spatial Layout Negotiator α.v2 — gallery</h1>
 <p class="lead">Five specialized designers, one measure/arrange protocol, 20% of every surplus kept at each level. All layouts below passed the validator (${violations} violations). Open any image for full size.</p>
+<p class="lead"><a href="sensitivity/index.html">Sensitivity study</a>: absorption 20% / 10% / 5% × uniform / balanced child-offer sampling, on identical datasets and seeds.</p>
 ${entries.map((e) => `<figure><figcaption><b>${e.title}</b>${e.caption}</figcaption><a href="${e.file}"><img src="${e.file}" alt="${e.title}"></a></figure>`).join('\n')}
 ${benchHtml}
 </main></body></html>`

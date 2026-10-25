@@ -44,6 +44,13 @@ export interface Config {
     sign: { w: number; d: number }
     attempts: number
     keep: number           // distinct blueprints retained
+    /**
+     * How a randomized attempt picks each child's offer: 'uniform', or 'balanced', where an
+     * offer's weight is (short side / long side) ^ balance — with balance = 1 a 2:1 offer is half
+     * as likely as a square one and nothing is ever excluded.
+     */
+    sampling: 'uniform' | 'balanced'
+    balance: number
   }
 }
 
@@ -61,7 +68,7 @@ export const DEFAULT_CONFIG: Config = {
   campus: { boundary: 4, path: 3, street: 6, entrance: 6, courtyard: 10 },
   area: {
     separators: [{ name: 'highway', width: 10 }, { name: 'street', width: 6 }, { name: 'path', width: 3.5 }, { name: 'hedge', width: 2 }],
-    boundary: 2, signBand: 3.5, sign: { w: 3, d: 1.2 }, attempts: 100, keep: 6,
+    boundary: 2, signBand: 3.5, sign: { w: 3, d: 1.2 }, attempts: 100, keep: 6, sampling: 'uniform', balance: 1,
   },
 }
 

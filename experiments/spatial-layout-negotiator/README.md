@@ -14,13 +14,15 @@ the repository root).
 
 ```
 cd experiments/spatial-layout-negotiator
-npm test            # 48 tests: every required edge case and invariant
+npm test            # 54 tests: every required edge case and invariant, plus the sensitivity checks
 npm run typecheck
 npm run gallery     # writes gallery/*.svg and gallery/index.html (validates every drawn layout)
 npm run bench       # writes results/benchmarks.{json,md}
+npm run study       # sensitivity study: writes results/sensitivity.{json,md} and gallery/sensitivity/
 ```
 
-Open `gallery/index.html` to browse the drawings; `results/benchmarks.md` has the measurements.
+Open `gallery/index.html` to browse the drawings; `results/benchmarks.md` has the measurements;
+`results/sensitivity.md` and `gallery/sensitivity/index.html` have the sensitivity study.
 
 ## How it works
 
@@ -119,6 +121,81 @@ check fires.
 8. **The validator earns its keep.** It caught a real mistake in my own demo data: three buildings had their
    parent's path, which the canonical-containment check rejected.
 
+## Sensitivity study: absorption rate × child-offer sampling
+
+`npm run study` → `results/sensitivity.md` (all tables), `results/sensitivity.json` (every run),
+`gallery/sensitivity/` (side-by-side drawings).
+
+**Design.** Absorption 20%, 10% and 5%, crossed with two ways for the Area designer to sample child offers in
+its randomized attempts: *uniform*, and *balanced* (mild): an offer's weight is its short side / long side,
+so a 2 : 1 offer is half as likely as a square one, a 4 : 1 offer a quarter as likely, and nothing is
+excluded (`cfg.area.sampling`, `cfg.area.balance` = 1). Both modes draw exactly one random number per child,
+so the same seed gives paired runs; attempt 0 (most compact offers) is identical in both. Held constant: every
+hard constraint, minimum size and separator minimum, 100 Area attempts, three datasets (the demo, ~100 and
+~1,000 synthetic containers), seeds 1–5, and three allocations (minimum, 2×, 3× wide / 2.5× deep). 360
+layouts, **0 violations**, each validated against its own absorption rate. Measurement is identical at every
+absorption rate (absorption only acts during growth). An exploratory arm (35% and 50%, uniform only) shows
+which way the trend continues; it is not part of the requested comparison.
+
+**Sampling (at minimum size; mean of 5 seeds).**
+
+| dataset | children placed by areas beyond 2.5 : 1 | mean imbalance | buildings beyond 3 : 1 | root minimum area |
+|---|---:|---:|---:|---:|
+| demo | 28% → 15% | 0.68 → 0.52 (better in 5 of 5 seeds) | 32% → 25% | +1.7% |
+| ~100 | 37% → 31% | 0.66 → 0.55 (4 of 5) | 0% → 0% | +2.1% |
+| ~1,000 | 17% → 14% | 0.51 → 0.47 (4 of 5) | 3% → 3% | +5.3% |
+
+(uniform → balanced; imbalance is |ln(w/d)|.) In no dataset did balanced sampling make proportions worse on
+average, and it cost 2–5% of compactness (balanced was smaller in 2 of 15 seed pairs). Its effect on growth and
+utilization is small next to absorption's (at most 2 percentage points on any share in the results, against up
+to 25 points between absorption rates), and it has none on runtime.
+
+**Absorption (growth to 2× on both axes, so the root's area grows 4×; demo, mean of 5 seeds).**
+
+| absorb | rooms grow | shelves grow (length) | shelf fill (66% at minimum) | furniture density (7.4%) | composition drift | rooms % of root (5.1%) |
+|---:|---:|---:|---:|---:|---:|---:|
+| 20% | 7.3× | 3.5× | 20% | 3.0% | 8.4 pp | 8.1% |
+| 10% | 13.0× | 5.4× | 13% | 2.5% | 17.4 pp | 15.7% |
+| 5% | 17.5× | 6.7× | 10% | 2.1% | 23.4 pp | 22.4% |
+| 35% *(expl.)* | 3.3× | 2.0× | 38% | 4.0% | 7.7 pp | 3.6% |
+| 50% *(expl.)* | 1.9× | 1.4× | 55% | 5.3% | 9.9 pp | 2.0% |
+
+The synthetic datasets and the 3× / 2.5× allocation show the same ordering (for example, at 3× / 2.5× in the
+demo rooms grow 14.5×, 28.7× and 40.2× while the root grows 7.5×).
+
+**What the numbers say.**
+
+1. **Lower absorption amplifies growth down the hierarchy.** Children cover only part of their parent's width
+   and depth, so a parent that passes 80–95% of its surplus to them makes them grow *faster* than itself, and
+   this compounds per level. Even at 20% rooms grow 1.3–2.5× as fast as the root, depending on the dataset; at
+   5%, 4.4–6.7× as fast.
+2. **Utilization does not improve; emptiness moves.** Growth adds no content, so every content measure falls
+   as the layout grows. Lower absorption only moves the new empty floor from roads, courtyards and plazas into
+   rooms and shelves: room floor rises from 8% to 22% of the root, but furniture density and shelf fill fall
+   (rooms at 5% are 2% furnished; shelves are 10% full). The look also drifts most from the minimum design.
+3. **Of the three tested rates, 20% is best on every quality measure** (shelf fill, furniture density,
+   composition drift, amplification). Runtime is the same in all six configurations (at ~5,000 containers:
+   measure 250–276 ms, arrange 38–60 ms, the same 35,992 candidates).
+4. **The trend continues above 20%** (exploratory): at 35% rooms grow at or below the root's rate, shelves
+   stay 37–49% full and rooms stay better furnished, with drift about the same as at 20%. At 50% rooms barely
+   grow and the areas keep 91% of the new floor. The best uniform rate is therefore likely between 20% and 35%.
+
+**Recommended defaults.**
+
+- **Sampling: balanced, strength 1** (weight = short side / long side). Consistently better proportions for a
+  small, bounded compactness cost, and no other effect.
+- **Absorption: keep 20%** among the tested rates; do not lower it. Before integration, test 25% and 30%, or
+  replace the single rate with a per-designer rate (for example, tied to each designer's share of own space)
+  so that containers of fixed-size objects (rooms, shelves) are not fed more than their share. Changing the
+  20% rule itself is an owner decision.
+- `DEFAULT_CONFIG` is unchanged (uniform, 20%), so the α.v2 gallery and benchmarks above still reproduce
+  exactly; switching the sampling default is a one-line change.
+
+**Drawings** (`gallery/sensitivity/`, same dataset, seed and scale in every panel of a sheet): S1 the demo at
+3× / 2.5× in all six configurations; S2 the Budgets room and S3 the Finance building from those layouts; S4
+uniform vs balanced sampling at minimum size; S5 ~100 synthetic containers at 2×; S2b the Budgets room at
+20% / 35% / 50% (exploratory).
+
 ## Limitations
 
 - Area growth is a proportional stretch of the blueprint: corners that were empty at minimum stay empty, and
@@ -141,6 +218,7 @@ src/designers/      bookshelf, room, rowContainer (+ building, campus), area
 src/validate.ts     all invariant checks; utilization helpers
 src/synth.ts        the named demo hierarchy and seeded synthetic hierarchies
 src/svg.ts          labelled SVG panels;  src/gallery.ts  the gallery;  src/bench.ts  benchmarks
-test/               48 tests
+src/metrics.ts      quality and utilization metrics;  src/study.ts  the sensitivity study
+test/               54 tests
 gallery/  results/  generated outputs (committed)
 ```
