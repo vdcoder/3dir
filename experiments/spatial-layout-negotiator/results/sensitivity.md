@@ -1,6 +1,6 @@
 # Sensitivity study — absorption rate × child-offer sampling
 
-Measured 2026-10-25T01:41:03.288Z on Intel(R) Xeon(R) Processor @ 2.10GHz (4 cores, 15.7 GB), Linux 6.18.44-fc-v153 x64, Node v22.22.0.
+Measured 2026-10-25T01:44:06.262Z on Intel(R) Xeon(R) Processor @ 2.10GHz (4 cores, 15.7 GB), Linux 6.18.44-fc-v153 x64, Node v22.22.0.
 
 **Factors.** Local absorption (each container keeps this share of each axis' surplus): 20%, 10%, 5%. Child-offer sampling in the Area designer's randomized attempts: *uniform*, or *balanced*, where an offer's weight is its short side / long side (a 2 : 1 offer is half as likely as a square one; nothing is excluded). Both modes consume one random number per child, so the same seed gives paired runs. Attempt 0 (most compact offers) is identical in both.
 
@@ -16,12 +16,12 @@ Absorption has no effect here (it only changes growth), so each row is one sampl
 
 | dataset | sampling | root min area m² | root aspect | rooms % of root | area → children | children placed by areas, mean imbalance | …beyond 2.5 : 1 | buildings beyond 3 : 1 | measure ms |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Demo hierarchy (C:\Users\Amanda) | uniform | 11,002 (10,850–11,200) | 0.81 (0.80–0.83) | 5.1% (4.8%–5.2%) | 63% (63%–63%) | 0.68 (0.48–0.79) | 28% (13%–38%) | 32% (23%–38%) | 11.4 |
-| Demo hierarchy (C:\Users\Amanda) | balanced | 11,186 (10,850–11,406) | 0.83 (0.81–0.85) | 5.1% (5.0%–5.1%) | 63% (62%–63%) | 0.52 (0.46–0.65) | 15% (13%–25%) | 25% (23%–31%) | 10.1 |
-| Synthetic, ~100 containers | uniform | 10,909 (10,749–11,208) | 1.08 (0.70–1.27) | 4.1% (4.0%–4.3%) | 60% (59%–60%) | 0.66 (0.57–0.72) | 37% (29%–43%) | 0% (0%–0%) | 5.8 |
-| Synthetic, ~100 containers | balanced | 11,133 (10,844–11,443) | 1.20 (0.86–1.35) | 4.1% (3.9%–4.2%) | 59% (58%–60%) | 0.55 (0.46–0.70) | 31% (29%–43%) | 0% (0%–0%) | 7.2 |
-| Synthetic, ~1,000 containers | uniform | 103,172 (99,082–105,464) | 1.22 (0.54–2.27) | 4.5% (4.4%–4.7%) | 79% (78%–80%) | 0.51 (0.49–0.55) | 17% (12%–24%) | 3% (2%–5%) | 52.8 |
-| Synthetic, ~1,000 containers | balanced | 108,573 (107,091–110,265) | 1.69 (0.88–2.02) | 4.3% (4.2%–4.3%) | 79% (78%–79%) | 0.47 (0.43–0.51) | 14% (9%–19%) | 3% (2%–5%) | 58.2 |
+| Demo hierarchy (C:\Users\Amanda) | uniform | 11,002 (10,850–11,200) | 0.81 (0.80–0.83) | 5.1% (4.8%–5.2%) | 63% (63%–63%) | 0.68 (0.48–0.79) | 28% (13%–38%) | 32% (23%–38%) | 10.5 |
+| Demo hierarchy (C:\Users\Amanda) | balanced | 11,186 (10,850–11,406) | 0.83 (0.81–0.85) | 5.1% (5.0%–5.1%) | 63% (62%–63%) | 0.52 (0.46–0.65) | 15% (13%–25%) | 25% (23%–31%) | 10.4 |
+| Synthetic, ~100 containers | uniform | 10,909 (10,749–11,208) | 1.08 (0.70–1.27) | 4.1% (4.0%–4.3%) | 60% (59%–60%) | 0.66 (0.57–0.72) | 37% (29%–43%) | 0% (0%–0%) | 5.7 |
+| Synthetic, ~100 containers | balanced | 11,133 (10,844–11,443) | 1.20 (0.86–1.35) | 4.1% (3.9%–4.2%) | 59% (58%–60%) | 0.55 (0.46–0.70) | 31% (29%–43%) | 0% (0%–0%) | 6.4 |
+| Synthetic, ~1,000 containers | uniform | 103,172 (99,082–105,464) | 1.22 (0.54–2.27) | 4.5% (4.4%–4.7%) | 79% (78%–80%) | 0.51 (0.49–0.55) | 17% (12%–24%) | 3% (2%–5%) | 52.7 |
+| Synthetic, ~1,000 containers | balanced | 108,573 (107,091–110,265) | 1.69 (0.88–2.02) | 4.3% (4.2%–4.3%) | 79% (78%–79%) | 0.47 (0.43–0.51) | 14% (9%–19%) | 3% (2%–5%) | 59.5 |
 
 "Imbalance" is |ln(width / depth)|: 0 for a square, 0.69 for 2 : 1, 1.10 for 3 : 1.
 
@@ -150,9 +150,9 @@ Mean over 5 seeds. *Rooms % of root*: room floor as a share of the whole layout.
 
 | absorb | sampling | measure ms | arrange at minimum ms | arrange at 2× ms | candidates explored |
 |---:|---|---:|---:|---:|---:|
-| 20% | uniform | 266.4 | 55.9 | 37.7 | 35,992 |
-| 10% | uniform | 275.6 | 59.8 | 43.0 | 35,992 |
-| 5% | uniform | 253.6 | 53.7 | 40.4 | 35,992 |
-| 20% | balanced | 253.2 | 50.4 | 41.5 | 35,992 |
-| 10% | balanced | 250.1 | 49.7 | 41.0 | 35,992 |
-| 5% | balanced | 263.5 | 50.7 | 40.1 | 35,992 |
+| 20% | uniform | 263.0 | 61.0 | 39.1 | 35,992 |
+| 10% | uniform | 259.3 | 61.3 | 42.4 | 35,992 |
+| 5% | uniform | 256.7 | 61.2 | 35.7 | 35,992 |
+| 20% | balanced | 278.6 | 57.0 | 44.9 | 35,992 |
+| 10% | balanced | 271.3 | 55.7 | 43.9 | 35,992 |
+| 5% | balanced | 261.0 | 55.8 | 38.8 | 35,992 |

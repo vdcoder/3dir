@@ -175,7 +175,8 @@ demo rooms grow 14.5×, 28.7× and 40.2× while the root grows 7.5×).
    (rooms at 5% are 2% furnished; shelves are 10% full). The look also drifts most from the minimum design.
 3. **Of the three tested rates, 20% is best on every quality measure** (shelf fill, furniture density,
    composition drift, amplification). Runtime is the same in all six configurations (at ~5,000 containers:
-   measure 250–276 ms, arrange 38–60 ms, the same 35,992 candidates).
+   measure 250–280 ms and arrange 35–62 ms in every configuration over repeated runs, with the same 35,992
+   candidates; differences between configurations are within run-to-run noise).
 4. **The trend continues above 20%** (exploratory): at 35% rooms grow at or below the root's rate, shelves
    stay 37–49% full and rooms stay better furnished, with drift about the same as at 20%. At 50% rooms barely
    grow and the areas keep 91% of the new floor. The best uniform rate is therefore likely between 20% and 35%.

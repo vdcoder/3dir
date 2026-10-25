@@ -204,6 +204,9 @@ console.log('wrote results/sensitivity.{json,md}')
 const CONFIGS = ABSORB.flatMap((a) => SAMPLING.map((s) => ({ absorb: a, sampling: s })))
 const findBy = (p: Placed, kind: string, path: string) => { for (const n of nodes(p)) if (n.kind === kind && n.path === path) return n; return null }
 const scaleFor = (rects: { w: number; d: number }[], w: number, h: number) => Math.min(...rects.map((r) => Math.min((w - 52) / r.w, (h - 76) / r.d)))
+/** Panel height that fits the drawings at their width-limited scale, so wide subjects don't leave empty panels. */
+const fitHeight = (rects: { w: number; d: number }[], w: number, hMax: number) =>
+  Math.min(hMax, Math.max(220, Math.ceil(Math.min(...rects.map((r) => (w - 52) / r.w)) * Math.max(...rects.map((r) => r.d)) + 76)))
 const notesFor = (p: Placed, min: Snapshot) => {
   const s = snapshot(p)
   const sh = newAreaShares(min, s)
@@ -233,12 +236,13 @@ const AMM = 'C:\\Users\\Amanda\\Documents\\Business\\AmandaMedicalMiami'
     ['s3-finance-building-3x.svg', 'building', `${AMM}\\Finance`, 'S3 · The Finance building inside each 3× / 2.5× layout'],
   ] as const) {
     const items = CONFIGS.map((c) => { const k = keep.get(`demo|${c.absorb}|${c.sampling}`)!; return { c, n: findBy(k.grown[1], kind, path)!, m: findBy(k.min, kind, path)! } })
-    const S2 = scaleFor(items.map((x) => x.n.rect), 620, 480)
+    const PH = fitHeight(items.map((x) => x.n.rect), 620, 480)
+    const S2 = scaleFor(items.map((x) => x.n.rect), 620, PH)
     sheet(file, title, 'What the absorption rate does at the bottom of the hierarchy: same contents, same scale.',
       items.map(({ c, n, m }) => {
         const s = snapshot(n)
         return { title: cname(c.absorb, c.sampling), subtitle: `${fmt(n.rect.w)} × ${fmt(n.rect.d)} m (minimum ${fmt(m.rect.w)} × ${fmt(m.rect.d)}; ${(n.rect.w * n.rect.d / (m.rect.w * m.rect.d)).toFixed(1)}× the area)`, root: n, scale: S2, notes: [`furniture density ${pct(s.furnitureDensity)} · shelf fill ${pct(s.shelfFill)} · width kept ${pct(n.ledger.x.absorbed / Math.max(n.ledger.x.surplus, 1e-9), 0)} of surplus`] } as Panel
-      }), { panelW: 620, panelH: 480 })
+      }), { panelW: 620, panelH: PH })
   }
 
   // S2b (exploratory): the same room with more absorption than the requested grid.
