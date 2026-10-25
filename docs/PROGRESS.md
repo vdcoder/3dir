@@ -157,6 +157,16 @@ exploratory 35% arm suggests the optimum lies between 20% and 35%. Recommendatio
 20%; test 25–30% or per-designer rates before integration. Runtime unchanged. Details: the experiment's README
 and `results/sensitivity.md`. 54 tests. App untouched; no credits used.
 
+**α.v3 (2026-10-25, branch `claude/negotiator-v3`).** Fixed geometry, smart rooms, segmented shelving, as a
+second designer set in `experiments/spatial-layout-negotiator/src/v3/` (α.v2 stays the default and reproduces
+exactly). Areas, campuses and buildings are placed at exactly their measured size; only rooms grow, into
+furnished zones. Shelves are fixed: shortest-first rows normalized per row, folders over 9 m split into
+consecutive segments with identity rails, rooms ≤ 10 m wide. Validator with all new invariants; 98 tests;
+gallery sheets A–J (38 layouts, 0 violations); α.v2 vs α.v3 comparison on identical datasets and seeds
+(54 layouts, 0 failures). Ordinary trees: about the same size and speed, better rooms and shelf fill, more
+campus grounds; huge folders: rooms stay bounded and worlds are 4–32× smaller. Known weakness: a very deep
+room sets its building row's depth. Details in the experiment's README. App untouched; no credits used.
+
 ## Earlier checkpoints
 - **Iteration 1 (flagship, accepted):** synthetic computer, 2D explorer, spatial world with the Alder & Finch
   business district, studio, gallery with 40 photos, pins, off-screen indicator, Pages deployment. Screenshots:

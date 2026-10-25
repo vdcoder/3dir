@@ -1,11 +1,14 @@
-# Spatial Layout Negotiator α.v2 — standalone experiment
+# Spatial Layout Negotiator — standalone experiment
 
 Five specialized container designers (Bookshelf, Room, Building, Campus, Area) cooperating through one
-two-pass protocol and one growth rule. **Not part of the 3dir app:** nothing here is imported by `src/`, the
-3D renderer, the existing spatial compiler or the deployment. No paid assets were generated.
+two-pass protocol. **Not part of the 3dir app:** nothing here is imported by `src/`, the 3D renderer, the
+existing spatial compiler or the deployment. No paid assets were generated.
 
-> Children measure and propose. Parents select and allocate. Every container absorbs 20% of its surplus
-> through its own spatial vocabulary and passes the remainder downward.
+Three stages live side by side, all reproducible:
+
+- **α.v2** (engine default): every container absorbs 20% of its surplus and passes the rest down.
+- **Sensitivity study** of α.v2: absorption 20 / 10 / 5% × uniform / balanced child-offer sampling.
+- **α.v3** (`{ version: 'v3' }`): *pack exact, center naturally, grow intelligently only inside rooms.*
 
 ## Run it
 
@@ -14,17 +17,123 @@ the repository root).
 
 ```
 cd experiments/spatial-layout-negotiator
-npm test            # 54 tests: every required edge case and invariant, plus the sensitivity checks
+npm test            # 98 tests: α.v2 edge cases and invariants, the sensitivity checks, and α.v3
 npm run typecheck
-npm run gallery     # writes gallery/*.svg and gallery/index.html (validates every drawn layout)
-npm run bench       # writes results/benchmarks.{json,md}
-npm run study       # sensitivity study: writes results/sensitivity.{json,md} and gallery/sensitivity/
+npm run gallery     # α.v2 drawings: gallery/*.svg and gallery/index.html (validates every drawn layout)
+npm run bench       # α.v2 benchmarks: results/benchmarks.{json,md}
+npm run study       # sensitivity study: results/sensitivity.{json,md} and gallery/sensitivity/
+npm run gallery:v3  # α.v3 sheets A–J: gallery/v3/ (validates every drawn layout with the α.v3 validator)
+npm run compare     # α.v2 vs α.v3 on the same datasets and seeds: results/v3-comparison.{json,md}
 ```
 
-Open `gallery/index.html` to browse the drawings; `results/benchmarks.md` has the measurements;
-`results/sensitivity.md` and `gallery/sensitivity/index.html` have the sensitivity study.
+Open `gallery/index.html` to browse the drawings (it links the sensitivity sheets and the α.v3 gallery);
+`results/` has the measurements.
 
-## How it works
+## α.v3 — fixed geometry, smart rooms, segmented shelving
+
+> Areas pack exact offered sizes. Campuses center buildings without resizing them. Buildings align rooms.
+> Rooms adapt their interiors to the dimensions required by their buildings. Shelves remain physically
+> fixed after their row geometry is established.
+
+α.v3 is a second designer set in `src/v3/`, selected per run with `{ version: 'v3' }`. It keeps the two-pass
+protocol (measure bottom-up, arrange top-down, no search while arranging) and reuses α.v2's measurement for
+Area, Campus and Building, its row negotiation, offer bounding, file tables and validator. There is no
+absorption rate: the root takes one of its measured offers and is placed at exactly that size (a scale or
+viewport size is refused).
+
+**Constants** (`src/config.ts`): `MAX_ROOM_WIDTH` = 10 m (configurable, `cfg.v3.maxRoomWidth`) is a room's
+outer width, side clearances included. `MAX_SHELF_SEGMENT_LENGTH` = `MAX_ROOM_WIDTH` − 2 × side clearance
+= 9 m is a shelf fixture's outer length, side panels included, so the frame allowance is already inside it and
+nothing is counted twice; a segment holds 8.88 m of books (9 m minus two 3 cm panels and 6 cm of breathing).
+
+| Designer | Measure | Arrange |
+|---|---|---|
+| A · Bookshelf | One fixed length: books + 2 panels + minimum spacing + breathing. Longer than 9 m: split in book order into full 9 m segments (never splitting a book); the last keeps its spare length as a display bay. All segments share the folder's path and a group id. | Books at their own widths. An ordinary shelf may be lengthened to its row's common length (display space); nothing else changes. |
+| B · Room | For each C: shortest-first rows (`src/v3/allocate.ts`), each row normalized to its own longest shelf; segment stacks in dedicated consecutive rows at the rear; one file table in front, as wide as the shelves allow or about square, never wider than the width limit allows (it grows in depth). The C = 1 offer is always kept. | Shelves, stacks and table keep their geometry. Extra width ≥ 1.5 m → a side zone; less → wider side clearances. Extra depth ≥ 1.5 m → a front zone with a walkway to the door, plus a middle zone between shelves and table from 4 m; less → a deeper entrance clearance. Zones are furnished from a fixed library. |
+| C · Building | α.v2's row family (k rooms per row, k = 1 … R), one common depth per row. | Exact footprint. Rooms take their row's depth; a row narrower than the building widens its rooms (equal shares, each up to 10 m); width no room can take becomes a lobby. Walls, partitions, corridors and hall keep their sizes. |
+| D · Campus | α.v2's row family of buildings. | Exact footprints. Each row is as deep as its deepest building; a narrower row gives each cell an equal share of the spare width; each building is centered in its cell, the rest is grounds, and an entrance walk joins its door to the street, courtyard or plaza in front. Paths, streets, courtyard, plaza and boundary keep their widths. |
+| E · Area | α.v2's seeded packing of exact child rectangles with separation P, balanced child-offer sampling by default. | The saved blueprint exactly; every child gets its selected offer's size. |
+
+**Room features** (`src/v3/features.ts`): workstations, a classroom, a waiting area, a lounge, a reading and
+study area, plants; leftover space is interior circulation. Each feature declares its minimum zone, the most
+it takes, preferred zones and optional keywords; a room whose name or path matches (for example *Clients*,
+*Training*, *Home*, *Finance*) tries that feature first. Furniture has fixed sizes and never rotates.
+Deterministic: no randomness, no external assets.
+
+**Validator** (`src/v3/validate.ts`): every α.v2 check (geometry, containment, canonical ancestry, overlap,
+exact accounting of every square metre, fixed-size objects, clearances, row alignment, ledgers) plus the α.v3
+invariants: exact area children, exact campus footprints, centering with entrance walks, common row depths,
+fixed separator widths, room growth kept inside the room, room width ≤ 10 m, equal shelves per row,
+shortest-first allocation (re-derived from the shelves' own lengths), segment size, consecutive dedicated
+segment rows, one canonical identity with complete contents and its rails, file-table completeness, the C = 1
+fallback, and furniture only inside feature zones with a walkway in line with the door. No search during
+arrangement is enforced by the engine and tested. Every check has a test that corrupts a valid layout on
+purpose and expects it to fire.
+
+### Evidence
+
+- **Tests:** 44 new (98 in total), including 200 random rooms (0–8 folders of 0.1–69 m, up to 400 files)
+  that all get a valid, bounded C = 1 offer, and the extreme room (≈1,000 m of one folder, 40 others, 600
+  files).
+- **Gallery** (`gallery/v3/`, 10 sheets, 38 validated layouts, 0 violations): A shortest-first with C = 1–4,
+  B per-row normalization, C a segmented shelf with its rails, D the extreme room, E smart growth, F building
+  alignment, G campus centering, H exact packing from Area to Bookshelf, I α.v2 vs α.v3 on one tree,
+  J a known weakness (below).
+- **Comparison** (`results/v3-comparison.md`): α.v2 at its minimum size (its most compact state) against
+  α.v3, same datasets and seeds: the demo, synthetic ~100, ~1,000 (5 seeds each) and ~5,000 (seed 1), plus
+  three extreme-shelf cases. 54 layouts, 0 validator failures in either version.
+
+### Findings
+
+On ordinary trees α.v3 is about as compact as α.v2, with better rooms and shelves but no new compactness;
+its clear advantage is bounded geometry when folders are huge.
+
+1. **World size: no gain on ordinary trees.** α.v3's root is 1.5% smaller on the demo and 1.8%, 2.8% and
+   3.6% larger at ~100, ~1,000 and ~5,000 containers. Balanced sampling alone costs 2–5% (sensitivity study),
+   so the exact-size rules themselves are roughly neutral.
+2. **Better rooms and shelves.** Unused room floor falls from 13.4–16.2% to 12.4–14.1% of room floor (lower in
+   3 of 4 datasets), buildings have no unused floor at all (α.v2: up to 395 m²), room proportions improve
+   (mean |ln w/d| 0.32–0.39 vs 0.37–0.43), and shelf fill rises from 62–66% to 69–73% because only shelves in
+   one row share a length. Rows are emptier (occupancy 71–78% vs 80–91%): shortest-first rows do not span the
+   room.
+3. **Campus grounds grow at scale.** Buildings are no longer stretched to their row's depth, so centering
+   leaves grounds: unused campus floor is 53% higher at ~1,000 containers and 41% higher at ~5,000, and total
+   unused floor is 3.5% of the root vs 2.7–2.9%.
+4. **Smart growth rarely triggers on ordinary trees.** Building-imposed growth is usually small: 0.8
+   features per demo layout and 12 among 1,574 rooms at ~5,000, mostly plants and workstations. Most rooms
+   that grow get too little extra space for a feature and only widen their clearances or deepen their
+   entrance. Features appear readily when a room is given real space (sheet E).
+5. **Extreme folders: bounded and much smaller.** With one ≈1,000 m folder, α.v2 makes a 1,068 m-wide room
+   and a 190,217 m² world; α.v3 keeps every room ≤ 10 m wide (that one 155 m deep) in a 29,107 m² world
+   (6.5× smaller), with unused floor at 6.8% of the root instead of 17.7% and shelf fill 91% instead of 32%.
+   With 3% of folders at 10–400 m: 4× smaller (139,566 vs 555,242 m²), 0 vs 15 rooms per layout wider than
+   10 m. The extreme room alone: 10 × 177 m vs 1,068 × 54 m (32× smaller).
+6. **Known weakness: one very deep room sets its whole row's depth** (sheet J). In the demo with the
+   ≈1,000 m folder, Invoices (2.4 × 5.0 m) shares a row with that 155 m room and becomes 2.4 × 155 m of mostly
+   open floor. The fix belongs in the Building's row generation (group rooms of similar depth, or give a very
+   deep room its own row or wing), which this brief asked to keep unchanged: an owner decision.
+7. **Cost: unchanged within noise.** Measuring and arranging take the same time (three runs at ~5,000
+   containers: measure 254–439 ms for α.v2 and 294–348 ms for α.v3, arrange 59–116 vs 66–77 ms; this VM
+   varies by ±20% or more). α.v3 keeps 33–35% fewer offers (mostly rooms) and 11–15% smaller saved plans;
+   placed trees are about the same size (−1% to +6%). The extreme room arranges 3.5× faster (17 vs 61 ms).
+
+### Interpretations to confirm
+
+- *"Rows can also be stretched horizontally, by making the front area taller"*: read as rooms in a row
+  narrower than their building widening (equal shares, each up to `MAX_ROOM_WIDTH`) and absorbing the width
+  inside, mostly in their front part; width no room can take becomes a building lobby (sheet F, test).
+- `MAX_ROOM_WIDTH` = 10 m is my choice of default; everything derives from it.
+- Segment stacks sit at the rear, ordinary rows follow rear to front in allocation order (shortest first).
+- Rooms do not use rear zones (shelves stand against the rear wall). When a centered walkway would leave both
+  halves of a front zone too narrow for a feature, the door and a 0.9 m walkway move to the west side,
+  alongside the 0.5 m side clearance.
+- A campus row's spare width is shared equally among its cells; buildings are centered in both directions.
+- Above rooms, α.v3 containers refuse any envelope other than their measured size, so a viewport can never
+  change world geometry.
+- A book wider than one segment can hold (8.88 m) is reported as infeasible rather than split.
+
+
+## How α.v2 works
 
 **Protocol** (`src/protocol.ts`, `src/engine.ts`)
 - *Measure* (bottom-up): a designer receives its children's offers and returns a bounded list of its own.
@@ -60,7 +169,7 @@ fixed object sizes, padding and separator clearances, row alignment, identical s
 (`absorbed + passed = surplus`, `absorbed ≥ 20%`). The test suite also corrupts layouts on purpose to show each
 check fires.
 
-## Evidence
+## α.v2 evidence
 
 - **Tests** (`test/`, 48): empty, single-child and many-identical containers at every level; mixed small and
   large children; narrow vs wide offers; identical shelves; near-square tables; **three rooms of different
@@ -84,7 +193,7 @@ check fires.
 
 (Area budget 100 attempts; medians; timings on this shared VM vary by about ±20% between runs.)
 
-## Findings
+## α.v2 findings
 
 1. **The architecture holds.** Every layout at every tested size passed every check; growth only ever
    reused saved plans (zero searches during arrange, enforced). The three-rooms-at-one-depth acceptance case
@@ -197,7 +306,7 @@ demo rooms grow 14.5×, 28.7× and 40.2× while the root grows 7.5×).
 uniform vs balanced sampling at minimum size; S5 ~100 synthetic containers at 2×; S2b the Budgets room at
 20% / 35% / 50% (exploratory).
 
-## Limitations
+## Limitations (α.v2)
 
 - Area growth is a proportional stretch of the blueprint: corners that were empty at minimum stay empty, and
   a very large child receives most of the growth.
@@ -220,6 +329,8 @@ src/validate.ts     all invariant checks; utilization helpers
 src/synth.ts        the named demo hierarchy and seeded synthetic hierarchies
 src/svg.ts          labelled SVG panels;  src/gallery.ts  the gallery;  src/bench.ts  benchmarks
 src/metrics.ts      quality and utilization metrics;  src/study.ts  the sensitivity study
-test/               54 tests
-gallery/  results/  generated outputs (committed)
+src/v3/             α.v3: bookshelf (segments), allocate (shortest-first), room, features, rowsV3
+                    (building, campus), area, validate, metrics, gallery, compare
+test/               98 tests (test/v3-*.test.ts for α.v3)
+gallery/  results/  generated outputs (committed): gallery/v3/ and results/v3-comparison.* for α.v3
 ```

@@ -8,6 +8,8 @@
     "test": "vitest run --config vitest.config.ts",
     "gallery": "node src/gallery.ts",
     "bench": "node --expose-gc src/bench.ts",
-    "study": "node --expose-gc src/study.ts"
+    "study": "node --expose-gc src/study.ts",
+    "gallery:v3": "node src/v3/gallery.ts",
+    "compare": "node --expose-gc src/v3/compare.ts"
   }
 }

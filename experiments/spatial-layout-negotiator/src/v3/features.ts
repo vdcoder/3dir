@@ -53,7 +53,7 @@ export const FEATURES: Record<FeatureId, Feature> = {
       }
       return out
     },
-    label: (o) => `workstations · ${o.filter((x) => x.kind === 'desk').length} desks`,
+    label: (o) => { const n = o.filter((x) => x.kind === 'desk').length; return `workstations · ${n} desk${n === 1 ? '' : 's'}` },
   },
   classroom: {
     id: 'classroom', min: { w: 3.0, d: 4.4 }, max: { w: 9, d: 9 },
